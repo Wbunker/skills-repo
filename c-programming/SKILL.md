@@ -125,4 +125,5 @@ Load these as needed based on the specific topic:
 | **Low-Level Programming** | [references/low-level.md](references/low-level.md) | Bitwise operators, bit-fields, volatile, memory layout, alignment, union type punning, endianness (Ch 20) |
 | **Declarations** | [references/declarations.md](references/declarations.md) | Declaration syntax, storage classes (auto/static/extern/register), type qualifiers (const/volatile/restrict), initializers, reading complex declarations (Ch 18) |
 | **File I/O** | [references/file-io.md](references/file-io.md) | Streams, fopen/fclose, text vs binary mode, fread/fwrite, fseek/ftell, error handling, temporary files (Ch 22) |
+| **Internationalization** | [references/internationalization.md](references/internationalization.md) | Locales, setlocale, wide characters (wchar_t), multibyte/wide conversion, <wchar.h>, <wctype.h>, Unicode (char16_t/char32_t), UTF-8 (Ch 25) |
 | **Standard Library** | [references/standard-library.md](references/standard-library.md) | Library overview, <stdlib.h>, <math.h>, <ctype.h>, <errno.h>, <assert.h>, <signal.h>, <setjmp.h>, <stdint.h>, C99/C11 additions (Ch 21, 23-27) |
