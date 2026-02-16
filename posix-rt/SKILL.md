@@ -24,7 +24,7 @@ All historical POSIX real-time standards are unified into **POSIX.1-2024** (IEEE
 
 Real-time features are optional feature groups. Check availability:
 ```c
-#include <unistd.h>
+#include &lt;unistd.h&gt;
 // _POSIX_TIMERS, _POSIX_PRIORITY_SCHEDULING, _POSIX_MESSAGE_PASSING,
 // _POSIX_MEMLOCK, _POSIX_SHARED_MEMORY_OBJECTS, _POSIX_SEMAPHORES,
 // _POSIX_THREADS, _POSIX_ASYNCHRONOUS_IO
@@ -37,19 +37,19 @@ Link with: `-lpthread` and `-lrt` (older systems; modern glibc integrates `-lrt`
 
 | Header | Purpose |
 |--------|---------|
-| `<pthread.h>` | Threads, mutexes, conditions, rwlocks, barriers |
-| `<sched.h>` | Scheduling policies, CPU affinity |
-| `<time.h>` | `clock_gettime`, `clock_nanosleep`, `timer_create` |
-| `<signal.h>` | Real-time signals, `sigqueue`, `sigwaitinfo` |
-| `<semaphore.h>` | Named and unnamed semaphores |
-| `<mqueue.h>` | POSIX message queues |
-| `<sys/mman.h>` | `shm_open`, `mmap`, `mlockall`, `mlock` |
-| `<aio.h>` | POSIX async I/O |
-| `<sys/epoll.h>` | Linux epoll |
-| `<sys/timerfd.h>` | Linux timerfd |
-| `<sys/signalfd.h>` | Linux signalfd |
-| `<sys/eventfd.h>` | Linux eventfd |
-| `<liburing.h>` | Linux io_uring (liburing) |
+| `pthread.h` | Threads, mutexes, conditions, rwlocks, barriers |
+| `sched.h` | Scheduling policies, CPU affinity |
+| `time.h` | `clock_gettime`, `clock_nanosleep`, `timer_create` |
+| `signal.h` | Real-time signals, `sigqueue`, `sigwaitinfo` |
+| `semaphore.h` | Named and unnamed semaphores |
+| `mqueue.h` | POSIX message queues |
+| `sys/mman.h` | `shm_open`, `mmap`, `mlockall`, `mlock` |
+| `aio.h` | POSIX async I/O |
+| `sys/epoll.h` | Linux epoll |
+| `sys/timerfd.h` | Linux timerfd |
+| `sys/signalfd.h` | Linux signalfd |
+| `sys/eventfd.h` | Linux eventfd |
+| `liburing.h` | Linux io_uring (liburing) |
 
 ## Real-Time Application Checklist
 

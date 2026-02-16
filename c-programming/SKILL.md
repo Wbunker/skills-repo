@@ -9,8 +9,8 @@ description: >
   bitwise operations, or program organization. Also triggers on mentions of gcc, clang,
   Makefile with C files, segfault debugging, undefined behavior, pointer arithmetic,
   malloc/free, printf/scanf formatting, header files, linkage, storage duration,
-  translation units, or any C standard library header (<stdio.h>, <stdlib.h>,
-  <string.h>, <math.h>, etc.). Covers the full language from fundamentals through
+  translation units, or any C standard library header (stdio.h, stdlib.h,
+  string.h, math.h, etc.). Covers the full language from fundamentals through
   advanced topics like function pointers, abstract data types, and low-level programming.
 ---
 
