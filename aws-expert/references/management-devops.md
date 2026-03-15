@@ -1,0 +1,16 @@
+# Management & DevOps — Reference Index
+
+| Namespace | Capabilities | CLI | Load when... |
+|---|---|---|---|
+| CloudFormation | [cloudformation-capabilities.md](management-devops/cloudformation-capabilities.md) | [cloudformation-cli.md](management-devops/cloudformation-cli.md) | IaC stacks, changesets, nested stacks, StackSets, drift detection |
+| CDK | [cdk-capabilities.md](management-devops/cdk-capabilities.md) | [cdk-cli.md](management-devops/cdk-cli.md) | CDK constructs, stacks, apps, bootstrapping, CDK Pipelines, cdk-nag |
+| CloudTrail | [cloudtrail-capabilities.md](management-devops/cloudtrail-capabilities.md) | [cloudtrail-cli.md](management-devops/cloudtrail-cli.md) | API audit logs, trails, CloudTrail Lake, Insights anomaly detection |
+| CloudWatch | [cloudwatch-capabilities.md](management-devops/cloudwatch-capabilities.md) | [cloudwatch-cli.md](management-devops/cloudwatch-cli.md) | Metrics, alarms, dashboards, Log Groups, Contributor Insights, Synthetics |
+| Systems Manager | [systems-manager-capabilities.md](management-devops/systems-manager-capabilities.md) | [systems-manager-cli.md](management-devops/systems-manager-cli.md) | Parameter Store, Session Manager, Patch Manager, Run Command, Automation |
+| Config / Control Tower | [config-control-tower-capabilities.md](management-devops/config-control-tower-capabilities.md) | [config-control-tower-cli.md](management-devops/config-control-tower-cli.md) | Resource config history, compliance rules, landing zone, account vending |
+| X-Ray / FIS | [xray-fis-capabilities.md](management-devops/xray-fis-capabilities.md) | [xray-fis-cli.md](management-devops/xray-fis-cli.md) | Distributed tracing (X-Ray), chaos engineering experiments (FIS) |
+| Governance & Advisory | [governance-advisory-capabilities.md](management-devops/governance-advisory-capabilities.md) | [governance-advisory-cli.md](management-devops/governance-advisory-cli.md) | Service Catalog portfolios/products, Trusted Advisor checks, Health Dashboard events, License Manager, Resource Explorer, Well-Architected Tool |
+| Resilience & AppConfig | [resilience-appconfig-capabilities.md](management-devops/resilience-appconfig-capabilities.md) | [resilience-appconfig-cli.md](management-devops/resilience-appconfig-cli.md) | Infrastructure Composer visual IaC, Resilience Hub RTO/RPO assessments, AppConfig feature flags and dynamic configuration |
+| SAM | [sam-capabilities.md](management-devops/sam-capabilities.md) | [sam-cli.md](management-devops/sam-cli.md) | AWS SAM templates, serverless resource types (Function, Api, HttpApi, SimpleTable, StateMachine, Connector), local testing, sam sync, sam pipeline, SAR publishing |
+| Observability Monitoring | [observability-monitoring-capabilities.md](management-devops/observability-monitoring-capabilities.md) | [observability-monitoring-cli.md](management-devops/observability-monitoring-cli.md) | Amazon Managed Grafana workspaces and dashboards, Amazon Managed Service for Prometheus (AMP) PromQL monitoring and alerting |
+| Ops & Incident Tools | [ops-incident-capabilities.md](management-devops/ops-incident-capabilities.md) | [ops-incident-cli.md](management-devops/ops-incident-cli.md) | AWS Chatbot (Slack/Teams alerts), Incident Manager response plans and runbooks, User Notifications, Quick Setup host management, Systems Manager for SAP |

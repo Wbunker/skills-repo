@@ -1,6 +1,6 @@
 # AWS Services Catalog
 
-Complete reference of AWS services organized by category (current as of early 2026, ~220+ distinct services).
+Complete reference of AWS services organized by category (current as of early 2026, ~275+ distinct services).
 
 ## Table of Contents
 1. [Compute](#compute)
@@ -22,10 +22,11 @@ Complete reference of AWS services organized by category (current as of early 20
 17. [End User Computing](#end-user-computing)
 18. [Front-End Web & Mobile](#front-end-web--mobile)
 19. [Game Technology](#game-technology)
-20. [Blockchain](#blockchain)
-21. [Quantum Technologies](#quantum-technologies)
-22. [Satellite](#satellite)
-23. [Robotics](#robotics)
+20. [Healthcare & Life Sciences](#healthcare--life-sciences)
+21. [Blockchain](#blockchain)
+22. [Quantum Technologies](#quantum-technologies)
+23. [Satellite](#satellite)
+24. [Robotics](#robotics)
 
 ---
 
@@ -47,7 +48,10 @@ Complete reference of AWS services organized by category (current as of early 20
 | **AWS Snow Family** | Physical edge compute and data transfer devices (Snowcone, Snowball, Snowmobile) |
 | **AWS Compute Optimizer** | Recommends optimal compute resources based on utilization metrics |
 | **VMware Cloud on AWS** | Migrate and extend on-premises VMware vSphere environments to AWS |
+| **AWS Elastic VMware Service (EVS)** | Run VMware vSphere workloads natively on dedicated AWS infrastructure without migration |
 | **AWS Serverless Application Repository** | Discover, deploy, and publish serverless applications using SAM templates |
+| **AWS ParallelCluster / AWS PCS** | Open-source HPC cluster management for running high-performance computing workloads on AWS |
+| **AWS SimSpace Weaver** | Managed service for running large-scale spatial simulations across multiple EC2 instances |
 | **AWS Savings Plans** | Flexible pricing model offering up to 72% savings on EC2, Lambda, and Fargate |
 
 ---
@@ -63,6 +67,8 @@ Complete reference of AWS services organized by category (current as of early 20
 | **Amazon EKS Anywhere** | Create and operate Kubernetes clusters on your own on-premises infrastructure |
 | **AWS Fargate** | Serverless compute engine for containers; no servers or clusters to manage |
 | **AWS App Runner** | Fully managed service for deploying containerized web apps and APIs with automatic scaling |
+| **AWS Copilot** | CLI for building, releasing, and operating containerized applications on ECS and App Runner |
+| **Red Hat OpenShift Service on AWS (ROSA)** | Fully managed Red Hat OpenShift clusters on AWS |
 
 ---
 
@@ -84,6 +90,7 @@ Complete reference of AWS services organized by category (current as of early 20
 | **AWS Elastic Disaster Recovery** | Fast, affordable application recovery using continuous replication |
 | **AWS Storage Gateway** | Hybrid cloud storage connecting on-premises applications to AWS cloud storage |
 | **AWS Transfer Family** | Managed SFTP/FTPS/FTP/AS2 file transfer into S3 or EFS |
+| **AWS Recycle Bin** | Recover accidentally deleted EBS snapshots and EBS-backed AMIs within a retention window |
 
 ---
 
@@ -103,6 +110,7 @@ Complete reference of AWS services organized by category (current as of early 20
 | **Amazon Timestream** | Serverless time-series database for IoT and operational applications |
 | **Amazon Redshift** | Fast, managed cloud data warehouse for petabyte-scale analytics |
 | **Amazon Redshift Serverless** | Serverless Redshift; auto-provisions and scales without cluster management |
+| **Amazon QLDB** | Fully managed ledger database with a transparent, immutable, cryptographically verifiable transaction log |
 | **Oracle Database@AWS** | Oracle databases, RAC, and applications deployed and managed within AWS datacenters |
 
 ---
@@ -126,6 +134,8 @@ Complete reference of AWS services organized by category (current as of early 20
 | **Amazon API Gateway** | Create, publish, maintain, monitor, and secure REST, HTTP, and WebSocket APIs |
 | **AWS Verified Access** | Secure, VPN-less zero-trust access to corporate applications based on identity/device posture |
 | **Amazon Route 53 Resolver DNS Firewall** | Filters and blocks DNS queries for known malicious domains from within VPCs |
+| **AWS Cloud WAN** | Build, manage, and monitor a global wide area network using a central dashboard and policies |
+| **AWS Telecom Network Builder (TNB)** | Deploy and manage automated telecom network functions and services on AWS |
 
 ---
 
@@ -152,6 +162,8 @@ Complete reference of AWS services organized by category (current as of early 20
 | **AWS Glue** | Serverless ETL with Data Catalog, integration engines, and data quality features |
 | **AWS Lake Formation** | Build, secure, and manage data lakes on S3 with fine-grained access control |
 | **AWS Entity Resolution** | Match and link related records across applications using ML and rules |
+| **AWS DataBrew** | Visual data preparation tool for cleaning and normalizing data without writing code |
+| **Amazon MSK Connect** | Deploy fully managed Kafka Connect connectors to stream data in and out of MSK clusters |
 | **AWS Data Pipeline** | Managed ETL for processing and moving data on schedules (largely superseded by Glue) |
 
 ---
@@ -184,7 +196,9 @@ Complete reference of AWS services organized by category (current as of early 20
 | **Amazon Kendra** | Intelligent enterprise search powered by ML |
 | **Amazon Lex** | Conversational chatbots and voice interfaces using ASR and NLU |
 | **Amazon Lookout for Equipment** | Detects early warning signs of machine failures from sensor data |
+| **Amazon Lookout for Metrics** | Automatically detects anomalies in business and operational metrics using ML |
 | **Amazon Lookout for Vision** | Computer vision for spotting defects and anomalies in images |
+| **Amazon Mechanical Turk** | Managed crowdsourcing marketplace for human intelligence tasks and data labeling |
 | **Amazon Monitron** | End-to-end system for detecting abnormal industrial machinery behavior |
 | **Amazon Nova Act** | AI service for building agents to automate browser-based tasks (GA 2025) |
 | **Amazon Personalize** | Real-time individualized product and content recommendations |
@@ -232,6 +246,10 @@ Complete reference of AWS services organized by category (current as of early 20
 | **AWS Network Firewall** | Managed stateful network firewall and IPS for VPCs |
 | **AWS WAF** | Protects web apps and APIs against common exploits, bots, and OWASP Top 10 |
 | **AWS Shield** | Managed DDoS protection; Standard (free/automatic) and Advanced (enhanced + 24/7 support) |
+| **AWS IAM Access Analyzer** | Identifies resources shared with external entities and validates IAM policies against best practices |
+| **AWS IAM Roles Anywhere** | Use IAM roles for on-premises workloads without long-term AWS credentials |
+| **AWS Signer** | Fully managed code-signing service for verifying the integrity of code artifacts |
+| **AWS Security Incident Response** | Centralize and automate security incident response with triage, investigation, and notification workflows |
 | **AWS Verified Access** | Secure, VPN-less zero-trust application access |
 
 ---
@@ -256,6 +274,13 @@ Complete reference of AWS services organized by category (current as of early 20
 | **AWS Infrastructure Composer** | Visual drag-and-drop IaC composer for serverless applications |
 | **AWS Resilience Hub** | Assesses, validates, and tracks application resilience |
 | **AWS AppConfig** | Deploy and validate application configurations with automatic rollback |
+| **Amazon Managed Grafana** | Fully managed Grafana service for querying, visualizing, and alerting on metrics, logs, and traces |
+| **Amazon Managed Service for Prometheus** | Fully managed Prometheus-compatible monitoring and alerting for container workloads |
+| **AWS Chatbot** | Receive AWS notifications and run commands directly from Slack and Microsoft Teams |
+| **AWS Incident Manager** | Automated incident response to reduce MTTR; runbooks, escalation plans, and stakeholder notifications |
+| **AWS Quick Setup** | Simplify configuration of frequently used AWS services and features across accounts |
+| **AWS User Notifications** | Centralized management of AWS event notifications delivered via email, SMS, and chat |
+| **AWS Systems Manager for SAP** | Operations management service for SAP workloads running on AWS |
 
 ---
 
@@ -290,6 +315,11 @@ Complete reference of AWS services organized by category (current as of early 20
 | **AWS X-Ray** | Distributed tracing and performance analysis for microservices |
 | **AWS Fault Injection Service** | Managed chaos engineering for controlled resilience experiments |
 | **Amazon Corretto** | No-cost production-ready OpenJDK distribution with long-term support |
+| **AWS SAM (Serverless Application Model)** | Open-source IaC framework extending CloudFormation with simplified syntax for Lambda, API Gateway, and DynamoDB |
+| **AWS Proton** | Automated IaC provisioning and deployment for containerized and serverless applications using templates |
+| **AWS Launch Wizard** | Guided deployment of enterprise applications (SQL Server, SAP, AD) following AWS best practices |
+| **AWS App Studio** | Low-code/no-code application builder powered by generative AI for business apps |
+| **AWS re:Post Private** | Private, managed knowledge-sharing community for your organization built on the re:Post platform |
 
 ---
 
@@ -305,6 +335,8 @@ Complete reference of AWS services organized by category (current as of early 20
 | **Amazon AppFlow** | No-code integration for transferring data between SaaS apps and AWS |
 | **Amazon MWAA** | Managed Apache Airflow for complex data pipeline orchestration |
 | **AWS B2B Data Interchange** | Automates EDI document transformation to JSON/XML |
+| **Amazon EventBridge Pipes** | Point-to-point integrations connecting event producers and consumers with optional filtering and enrichment |
+| **Amazon EventBridge Scheduler** | Fully managed scheduler for triggering AWS targets on a one-time or recurring schedule |
 | **Amazon SWF** | Manages task coordination across distributed application components (legacy; prefer Step Functions) |
 
 ---
@@ -339,6 +371,7 @@ Complete reference of AWS services organized by category (current as of early 20
 | **AWS Elemental Inference** | Auto-converts live/on-demand video into vertical mobile formats using AI (2025) |
 | **Amazon IVS** | Managed low-latency live streaming for interactive video experiences |
 | **Amazon Kinesis Video Streams** | Ingests and stores live video for analytics and ML (also in Analytics) |
+| **AWS Deadline Cloud** | Managed cloud-based render farm for VFX, animation, and 3D rendering workloads |
 | **Amazon Elastic Transcoder** | Video transcoding for device-compatible formats (legacy; prefer MediaConvert) |
 | **Amazon Nimble Studio** | Cloud-based VFX, animation, and interactive content production |
 
@@ -355,6 +388,11 @@ Complete reference of AWS services organized by category (current as of early 20
 | **AWS Transfer Family** | Managed SFTP/FTPS/FTP/AS2 into S3 or EFS (also in Storage) |
 | **AWS Mainframe Modernization** | Platform to modernize, migrate, and run mainframe applications on AWS |
 | **AWS Transform** | Agentic AI for modernizing legacy systems and eliminating technical debt |
+| **AWS Application Discovery Service** | Collect on-premises server configuration, usage, and behavior data to plan migrations |
+| **AWS Migration Hub** | Centralized tracking of application migration progress across multiple AWS tools |
+| **AWS Migration Hub Orchestrator** | Automate and orchestrate migration workflows end-to-end across tools and services |
+| **AWS Migration Hub Refactor Spaces** | Incrementally refactor monolithic applications into microservices with traffic management |
+| **AWS Migration Hub Strategy Recommendations** | Analyze application portfolios and recommend migration/modernization strategies |
 | **AWS Schema Conversion Tool (SCT)** | Converts database schemas for engine-to-engine migrations |
 
 ---
@@ -371,6 +409,8 @@ Complete reference of AWS services organized by category (current as of early 20
 | **Amazon WorkDocs** | Enterprise document storage and collaboration |
 | **AWS AppFabric** | Aggregates and normalizes security data across SaaS applications |
 | **AWS Supply Chain** | AI-powered supply chain visibility, planning, and risk mitigation |
+| **Amazon Chime** | Cloud communications service for online meetings, video conferencing, and business calling |
+| **AWS End User Messaging** | Send SMS, voice, push, and email messages to end users (consolidates SNS mobile and Pinpoint SMS) |
 | **AWS Wickr** | End-to-end encrypted messaging, voice, and video |
 
 ---
@@ -405,6 +445,18 @@ Complete reference of AWS services organized by category (current as of early 20
 |---|---|
 | **Amazon GameLift Servers** | Managed game server hosting for multiplayer workloads |
 | **Amazon GameLift Streams** | Low-latency cloud game streaming service |
+
+---
+
+## Healthcare & Life Sciences
+
+| Service | Description |
+|---|---|
+| **Amazon HealthImaging** | Store, transform, and analyze medical imaging data at petabyte scale with DICOM-native APIs |
+| **Amazon HealthLake** | HIPAA-eligible data store and analytics for FHIR-format health data (also in ML/AI) |
+| **AWS HealthOmics** | Store, query, and analyze genomic, transcriptomic, and other omics data at scale |
+| **AWS HealthScribe** | HIPAA-eligible automatic clinical note generation from patient-clinician conversations (also in ML/AI) |
+| **Amazon Comprehend Medical** | NLP for extracting medical information and clinical entities from unstructured text (also in ML/AI) |
 
 ---
 
