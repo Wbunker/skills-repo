@@ -4,15 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-This repository is currently in initial setup. Update this file as the project structure and tooling are established.
+This repository contains shareable Claude Code skills. Each skill is a folder at the repo root containing a `SKILL.md` and optional `scripts/`, `references/`, and `assets/` subdirectories.
 
-## Build & Test Commands
+## Skill Packaging
 
-<!-- Add commands here as they are configured, e.g.: -->
-<!-- npm run build / make build / cargo build -->
-<!-- npm test / pytest / go test ./... -->
-<!-- npm run lint / ruff check . -->
-
-## Architecture
-
-<!-- Describe key architectural decisions, module boundaries, and important abstractions here. -->
+When creating or updating skills in this repo, **do not run `package_skill.py` and do not produce `.skill` files**. The folder is the distributable artifact. Skip the packaging step entirely.
