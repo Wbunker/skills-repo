@@ -266,6 +266,179 @@ Orders Table       Order Queue
 
 ---
 
+## Control Flow Diagrams: Best for Logic, Branching, and Process Steps
+
+Control flow diagrams answer **"what happens, in what order, and under what conditions?"** They show the step-by-step logic of a function, algorithm, or business process — including branches, loops, and error paths. This is distinct from sequence diagrams (which show *who* calls *whom*) and state machines (which show *what state* an object is in).
+
+Use a control flow diagram when you want to document:
+- Branching logic (if/else, switch)
+- Loops and retries
+- Error and exception paths
+- Business rules with multiple conditions
+- The internal logic of a non-obvious function
+
+**Good for**: "What does this function or process do step by step?"
+
+### Types of Control Flow Diagrams
+
+| Type | Best For | Format |
+|------|---------|--------|
+| Flowchart | General branching and sequencing | Mermaid `flowchart` |
+| Decision tree | Multi-condition branching with clear outcomes | Mermaid `flowchart` or ASCII |
+| Activity diagram | Processes with loops, parallel paths, and swim lanes | Mermaid `flowchart` with subgraphs |
+
+---
+
+### Flowchart: Branching Logic
+
+Use when a function has conditional paths that affect what happens next.
+
+```mermaid
+flowchart TD
+    A([Start: processOrder]) --> B{Order exists?}
+    B -- No --> C[Return 404 Not Found]
+    B -- Yes --> D{Payment status?}
+    D -- pending --> E[Authorize payment]
+    E --> F{Authorization OK?}
+    F -- No --> G[Set status = payment_failed]
+    G --> H[Emit PaymentFailed event]
+    H --> Z([End])
+    F -- Yes --> I[Set status = authorized]
+    D -- already_authorized --> I
+    I --> J[Enqueue for fulfillment]
+    J --> K[Return 200 OK]
+    K --> Z
+    C --> Z
+```
+
+**What AI learns from this**: the exact decision points, all branches including failures, the event emitted on failure, and the happy path — without reading the implementation.
+
+#### Mermaid Flowchart Syntax Cheatsheet
+
+| Element | Syntax | Renders As |
+|---------|--------|-----------|
+| Start/end | `([label])` | Rounded pill |
+| Process step | `[label]` | Rectangle |
+| Decision | `{label?}` | Diamond |
+| Arrow with label | `-- label -->` | Labeled edge |
+| Yes/No branches | `-- Yes -->` / `-- No -->` | Labeled branches |
+
+---
+
+### Decision Tree: Multi-Condition Branching
+
+Use when the logic is a series of conditions with distinct leaf outcomes — common for validation, routing, and classification logic.
+
+```mermaid
+flowchart TD
+    A{Is user authenticated?} -- No --> B[Return 401]
+    A -- Yes --> C{Has required role?}
+    C -- No --> D[Return 403]
+    C -- Yes --> E{Is resource owned by user?}
+    E -- No --> F{Is user an admin?}
+    F -- No --> G[Return 403]
+    F -- Yes --> H[Allow access]
+    E -- Yes --> H
+```
+
+Decision trees can also be written as **ASCII text** for use in CLAUDE.md, code comments, and ADRs where Mermaid may not render:
+
+```
+Authorize request:
+├── authenticated? No  → 401 Unauthorized
+└── authenticated? Yes
+    ├── has role? No   → 403 Forbidden
+    └── has role? Yes
+        ├── owns resource? Yes         → allow
+        └── owns resource? No
+            ├── is admin? Yes          → allow
+            └── is admin? No           → 403 Forbidden
+```
+
+ASCII decision trees are the most AI-readable form of branching logic — they are plain text, require no rendering, and map directly onto if/else and switch structures in code.
+
+---
+
+### Activity Diagram: Loops and Retry Logic
+
+Use when a process has loops, retries, or parallel steps. Mermaid flowcharts approximate activity diagrams using back-edges and subgraphs.
+
+```mermaid
+flowchart TD
+    A([Start: syncWithUpstream]) --> B[Fetch batch of 100 records]
+    B --> C{Records returned?}
+    C -- No --> Z([End: sync complete])
+    C -- Yes --> D[Process each record]
+    D --> E{Processing error?}
+    E -- Yes --> F{Retry count < 3?}
+    F -- Yes --> G[Increment retry, wait backoff]
+    G --> D
+    F -- No --> H[Log failure, move to dead-letter]
+    H --> I[Continue to next record]
+    E -- No --> I
+    I --> J{More records in batch?}
+    J -- Yes --> D
+    J -- No --> B
+```
+
+Key patterns to show in activity diagrams:
+- **Retry loops**: back-edge from error handler to the step being retried
+- **Batch iteration**: loop back to fetch after completing a batch
+- **Dead-letter / skip**: explicit path for unrecoverable failures that keeps the process moving
+
+---
+
+### Error Path Documentation
+
+Error paths are the most commonly omitted part of control flow diagrams. For AI-readable documentation, always include:
+
+1. The **happy path** (all conditions satisfied)
+2. **Validation failures** (bad input, missing required fields)
+3. **Downstream failures** (external service errors, timeouts)
+4. **Conflict/race conditions** (duplicate, stale state)
+
+```mermaid
+flowchart TD
+    A([createUser]) --> B{Email valid format?}
+    B -- No --> C[Return 400: invalid email]
+    B -- Yes --> D{Email already exists?}
+    D -- Yes --> E[Return 409: email taken]
+    D -- No --> F[Hash password]
+    F --> G[Write to DB]
+    G --> H{DB write OK?}
+    H -- No --> I[Log error, return 500]
+    H -- Yes --> J[Send welcome email async]
+    J --> K[Return 201 Created]
+    C --> Z([End])
+    E --> Z
+    I --> Z
+    K --> Z
+```
+
+---
+
+### Control Flow in Code Comments (ASCII)
+
+For functions where the logic is non-obvious, embed a mini control flow diagram directly in the source as a block comment:
+
+```typescript
+/**
+ * Resolves the effective price for a line item.
+ *
+ * Logic:
+ *   hasCustomerDiscount? Yes → apply discount to base price
+ *                        No  → use base price
+ *       └── price < minimumMargin?
+ *             Yes → use minimumMargin (floor enforcement)
+ *             No  → use computed price
+ */
+function resolvePrice(item: LineItem, customer: Customer): number { ... }
+```
+
+AI tools read docblock comments and will follow this logic when generating code that calls or modifies the function.
+
+---
+
 ## State Diagrams: Best for Object Lifecycle
 
 When AI generates code that creates or transitions objects, it needs to know the valid states and allowed transitions. State diagrams provide this:
@@ -376,3 +549,7 @@ Regardless of format, AI tools extract more value from diagrams that follow thes
 | What classes exist and how do they relate? | Class diagram |
 | How does data move from A to B? | Flowchart or ASCII flow |
 | What are the valid inputs/outputs at each step? | Flowchart with decision nodes |
+| What does this function or process do step by step? | Control flow diagram (flowchart) |
+| What are all the branches and conditions in this logic? | Decision tree (flowchart or ASCII) |
+| What happens in loops and retries? | Activity diagram (flowchart with back-edges) |
+| What are the error and failure paths? | Flowchart — always include alongside happy path |
