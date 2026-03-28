@@ -576,7 +576,18 @@ AI tools read docblock comments and will follow this logic when generating code 
 
 ## State Diagrams: Best for Object Lifecycle
 
-When AI generates code that creates or transitions objects, it needs to know the valid states and allowed transitions. State diagrams provide this:
+State diagrams show **how something changes state over time** — what states are possible, which transitions between them are valid, and what triggers each transition. They answer the question "what states can this object be in?"
+
+Use a state diagram when documenting:
+- **Lifecycle rules** — the full set of states an object can be in
+- **Valid transitions** — which state changes are allowed (and implicitly, which are not)
+- **Edge cases** — error states, retry states, cancellation paths, terminal states
+
+**Good for**: "What states can this object be in?" and "Can I transition from X to Y?"
+
+---
+
+### Order Lifecycle
 
 ```mermaid
 stateDiagram-v2
@@ -603,6 +614,123 @@ stateDiagram-v2
 ```
 
 **What AI learns**: valid status values, which transitions are allowed, and implicitly which transitions are NOT valid (e.g., `Shipped → Pending` is not in the diagram → don't generate that code).
+
+---
+
+### Job / Queue Lifecycle
+
+Background jobs and task queues have their own lifecycle with retry and failure states that are easy to get wrong in code. The diagram makes the retry loop and terminal states explicit:
+
+```mermaid
+stateDiagram-v2
+  [*] --> Queued : job enqueued
+
+  Queued --> Running : worker picks up
+
+  Running --> Complete : execution succeeds
+  Running --> Failed : execution throws / timeout
+
+  Failed --> Retrying : attempt < maxAttempts
+  Failed --> DeadLetter : attempt >= maxAttempts
+
+  Retrying --> Running : backoff elapsed, re-enqueued
+  Retrying --> Cancelled : operator cancels
+
+  Queued --> Cancelled : operator cancels before pickup
+
+  Complete --> [*]
+  DeadLetter --> [*]
+  Cancelled --> [*]
+```
+
+**What AI learns**: the retry loop (`Failed → Retrying → Running`), the dead-letter terminal state, the cancellation paths from both `Queued` and `Retrying`, and that `Complete`, `DeadLetter`, and `Cancelled` are all terminal — no further transitions are valid.
+
+---
+
+### State + Transition Table (Companion to Diagram)
+
+For objects with many states, pair the diagram with a transition table. The table answers "given current state S, what events are valid and what state results?":
+
+| Current State | Event / Trigger | Next State | Guard Condition |
+|--------------|----------------|------------|----------------|
+| `Pending` | payment_succeeded | `PaymentAuthorized` | — |
+| `Pending` | payment_failed | `PaymentFailed` | — |
+| `Pending` | cancel_requested | `Cancelled` | — |
+| `PaymentAuthorized` | fulfillment_started | `Fulfilling` | inventory reserved |
+| `PaymentAuthorized` | cancel_requested | `Cancelled` | before fulfillment |
+| `Fulfilling` | carrier_pickup | `Shipped` | — |
+| `Fulfilling` | out_of_stock | `Cancelled` | — |
+| `Shipped` | delivery_confirmed | `Delivered` | — |
+| `Shipped` | return_initiated | `ReturnRequested` | within return window |
+
+The **Guard Condition** column captures business rules that are otherwise hidden in application code — this is high-value context for AI tools generating validation or transition logic.
+
+---
+
+### Documenting Invalid Transitions
+
+A diagram shows what IS valid. For critical business objects, also document what is explicitly NOT allowed — this prevents AI from generating code that bypasses the state machine:
+
+```
+Invalid transitions for Order:
+- Delivered → any state (terminal — no re-opening)
+- Shipped → Pending / PaymentAuthorized (cannot revert once shipped)
+- Cancelled → any state (terminal — create a new order instead)
+- Fulfilling → PaymentFailed (payment was already authorized)
+```
+
+---
+
+### States in Code: Enum + Transition Guard Pattern
+
+When generating or modifying state transition code, AI tools benefit from seeing the canonical enum values alongside the diagram:
+
+```typescript
+// Valid states — matches the state diagram in docs/ARCHITECTURE.md
+type OrderStatus =
+  | "pending"
+  | "payment_authorized"
+  | "payment_failed"
+  | "fulfilling"
+  | "shipped"
+  | "delivered"
+  | "cancelled"
+  | "return_requested"
+  | "return_processed"
+
+// Transition guard — throws if transition is not in the diagram
+function transition(order: Order, to: OrderStatus): Order {
+  const valid = VALID_TRANSITIONS[order.status]
+  if (!valid?.includes(to)) {
+    throw new InvalidTransitionError(order.status, to)
+  }
+  return { ...order, status: to }
+}
+```
+
+The comment linking to the diagram ties the code to the authoritative source of truth.
+
+---
+
+### State Diagrams in Code Comments
+
+For domain objects, embed a compact ASCII state diagram directly in the class or type definition:
+
+```typescript
+/**
+ * Job status lifecycle:
+ *
+ *   queued → running → complete
+ *                   ↓
+ *                failed → retrying → running (loop)
+ *                       ↓
+ *                   dead_letter  (maxAttempts reached)
+ *
+ * Terminal states: complete, dead_letter, cancelled
+ * cancelled can be reached from: queued, retrying
+ */
+type JobStatus = "queued" | "running" | "complete" | "failed" | "retrying" | "dead_letter" | "cancelled"
+```
 
 ---
 
@@ -684,6 +812,9 @@ Regardless of format, AI tools extract more value from diagrams that follow thes
 | What fires synchronously vs. asynchronously? | Sequence diagram with `->>` vs `-)` arrows |
 | What fields/tables exist and how are they related? | ERD |
 | What states can an object be in and how does it transition? | State machine |
+| Can I transition from state X to state Y? | State diagram + transition table |
+| What are the terminal states? | State diagram ([*] exit arrows) |
+| What is the retry / failure lifecycle for this job? | State diagram (job queue pattern) |
 | What classes exist and how do they relate? | Class diagram |
 | How does data move from A to B? | Flowchart or ASCII flow |
 | What are the valid inputs/outputs at each step? | Flowchart with decision nodes |
