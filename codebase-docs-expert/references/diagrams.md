@@ -126,9 +126,140 @@ C4Container
 
 ---
 
-## Sequence Diagrams: Best for API and Inter-Service Flows
+## Sequence Diagrams: Best for Request/Response Chains and Inter-Service Flows
 
-Sequence diagrams answer "what calls what, in what order, with what data?" — precisely the information AI needs to generate correct integration code.
+Sequence diagrams show **who talks to whom, in what order, over time**. They answer the question "what happens when the user does X?" by tracing every hop from user action to data store and back. This is the diagram to reach for when documenting:
+
+- Request/response chains (end-to-end from user click to response)
+- Microservice calls (service A calls B calls C)
+- API orchestration (one service fan-out to multiple downstream services)
+- Timing and ordering of async actions (what fires first, what waits for what)
+
+**Good for**: "What happens when the user clicks Submit?"
+
+---
+
+### Full-Stack User Action: The Core Use Case
+
+The most valuable sequence diagram traces a user action all the way through the stack — from browser to frontend to API to database to external service and back. This is the diagram AI tools need most when generating integration code, because it shows every system involved and the exact protocol at each hop.
+
+```mermaid
+sequenceDiagram
+  actor User
+  participant FE as React Frontend
+  participant GW as API Gateway
+  participant API as Order Service
+  participant DB as PostgreSQL
+  participant Pay as Stripe
+
+  User->>FE: clicks "Place Order"
+  FE->>GW: POST /orders {items, paymentToken}
+  GW->>GW: validate JWT
+  GW->>API: forward request + userId
+  API->>DB: INSERT order (status=pending)
+  DB-->>API: orderId
+  API->>Pay: POST /charges {amount, token}
+  Pay-->>API: {chargeId, status: "succeeded"}
+  API->>DB: UPDATE order SET status=confirmed, chargeId=...
+  DB-->>API: OK
+  API-->>GW: 201 {orderId, status: "confirmed"}
+  GW-->>FE: 201 {orderId}
+  FE-->>User: show order confirmation
+```
+
+**What AI learns from this**: every system involved, the JWT validation step at the gateway, the two-phase DB write (pending → confirmed), the Stripe call in the middle, and the exact response shape returned to the user — without reading five separate files.
+
+---
+
+### Microservice Calls: Service-to-Service Chain
+
+When one service calls several others in sequence, a sequence diagram makes the dependency order explicit:
+
+```mermaid
+sequenceDiagram
+  participant Orders as Order Service
+  participant Inventory as Inventory Service
+  participant Pricing as Pricing Service
+  participant Notify as Notification Service
+
+  Orders->>Inventory: GET /reserve {sku, qty}
+  Inventory-->>Orders: {reservationId, available: true}
+  Orders->>Pricing: GET /quote {sku, qty, customerId}
+  Pricing-->>Orders: {unitPrice, discountApplied}
+  Orders->>Orders: persist order with reservation + price
+  Orders-)Notify: publish OrderConfirmed event
+  Note right of Notify: async — Orders does not wait
+```
+
+Arrow types in Mermaid sequence diagrams:
+
+| Arrow | Syntax | Meaning |
+|-------|--------|---------|
+| Synchronous call | `->>` | Caller waits for response |
+| Response | `-->>` | Return value |
+| Async / fire-and-forget | `-)` | Caller does not wait |
+| Note | `Note right of X: text` | Annotation |
+
+---
+
+### API Orchestration: Fan-Out to Multiple Downstream Services
+
+When a single endpoint fans out to several services, show all parallel or sequential calls explicitly:
+
+```mermaid
+sequenceDiagram
+  participant GW as API Gateway
+  participant Search as Search Service
+  participant Recs as Recommendations Service
+  participant Inventory as Inventory Service
+
+  GW->>Search: GET /products?q=laptop
+  GW->>Recs: GET /recs?userId=123
+  GW->>Inventory: GET /availability?category=laptop
+
+  Note over Search,Inventory: Parallel calls — all three fire simultaneously
+
+  Search-->>GW: [{id, title, price}]
+  Recs-->>GW: [{id, score}]
+  Inventory-->>GW: [{id, inStock}]
+
+  GW->>GW: merge + rank results
+  GW-->>GW: 200 {products: [...]}
+```
+
+For truly parallel calls, add a note to make the concurrency explicit — the diagram syntax alone does not enforce ordering.
+
+---
+
+### Async Flows: Webhooks and Callbacks
+
+When a response comes back asynchronously (webhook, polling, event), show the two phases separately:
+
+```mermaid
+sequenceDiagram
+  actor User
+  participant API as Our API
+  participant Pay as Stripe
+  participant DB as Database
+
+  User->>API: POST /checkout
+  API->>Pay: POST /payment_intents {amount}
+  Pay-->>API: {intentId, status: "requires_action"}
+  API-->>User: {clientSecret} — frontend handles 3DS
+
+  Note over Pay,API: ... time passes, user completes 3DS in browser ...
+
+  Pay-)API: POST /webhooks/stripe {event: payment_intent.succeeded}
+  API->>DB: UPDATE order SET status=paid
+  API->>API: trigger fulfillment
+  API-->>Pay: 200 OK (acknowledge webhook)
+```
+
+This pattern — synchronous initiation, asynchronous completion via webhook — is one of the most common sources of bugs in payment integrations. Documenting it explicitly prevents AI tools from generating code that assumes the payment is complete on the first response.
+
+---
+
+### Original Example: Backend Service Flow
 
 ```mermaid
 sequenceDiagram
@@ -151,12 +282,16 @@ sequenceDiagram
 
 **What AI learns from this**: the exact call chain, the conditional DynamoDB write, the async queue pattern, and the response shape — all in one readable artifact.
 
+---
+
 ### Sequence Diagram Best Practices for AI
 
-- Use `participant` aliases that match your actual class/service names
-- Label every arrow with the method or endpoint being called
-- Show return arrows (`-->>`) for responses; omit only when truly fire-and-forget
-- Include error paths as separate `alt`/`else` blocks for the most common failure modes:
+- Use `participant` aliases that match your actual class/service/component names
+- Label every arrow with the method, endpoint, or event being sent
+- Show return arrows (`-->>`) for all synchronous responses; omit only for true fire-and-forget
+- Include `actor User` (or `actor Browser`) as the starting participant for user-initiated flows
+- Mark async calls with `-)` and add a `Note` explaining why there is no immediate response
+- Include error paths as `alt`/`else` blocks for the most common failure modes:
 
 ```mermaid
 sequenceDiagram
@@ -544,6 +679,9 @@ Regardless of format, AI tools extract more value from diagrams that follow thes
 | What services/apps make up the system? | C4 L2 Container |
 | What components are inside a service? | C4 L3 Component |
 | What calls what, in what order? | Sequence diagram |
+| What happens when the user clicks X? | Sequence diagram (full-stack: user → frontend → API → DB → external service) |
+| How do these microservices talk to each other? | Sequence diagram (service-to-service chain) |
+| What fires synchronously vs. asynchronously? | Sequence diagram with `->>` vs `-)` arrows |
 | What fields/tables exist and how are they related? | ERD |
 | What states can an object be in and how does it transition? | State machine |
 | What classes exist and how do they relate? | Class diagram |
