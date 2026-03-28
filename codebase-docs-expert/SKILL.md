@@ -1,15 +1,143 @@
 ---
 name: codebase-docs-expert
-description: Expert in software project and GitHub repository documentation. Use this skill whenever the user asks about README files, CLAUDE.md or AGENTS.md setup, architecture documentation, ADRs (architecture decision records), API docs, documentation-as-code, making a codebase understandable to AI tools, or auditing what documentation a project is missing. Also trigger for questions like "what docs do I need", "how should I document my repo", "how do I make my codebase AI-friendly", "help me write a CLAUDE.md", "document this project", or "what's missing from my documentation". Based on the Diataxis framework, GitHub documentation standards, and current AI-coding-assistant best practices.
+description: >
+  Expert in software project documentation — both analyzing existing codebases and
+  producing documentation. Provides multiple viewpoints and methodologies for reasoning
+  about software systems. Use when asked to: analyze a codebase, document an existing
+  system, reverse-engineer architecture from code, create an architecture overview,
+  map dependencies, understand how a system works, produce onboarding documentation,
+  generate ARCHITECTURE.md, identify system boundaries, document data flows, catalog
+  integration points, write README files, set up CLAUDE.md or AGENTS.md, create ADRs,
+  audit documentation gaps, make a codebase AI-friendly, or answer "how does this
+  codebase work" or "what docs do I need". Works with any language or framework.
+  Synthesizes SEI Views and Beyond, C4 Model, Rozanski & Woods viewpoints/perspectives,
+  Ousterhout's cognitive load analysis, Diátaxis framework, ADRs, Release It! stability
+  patterns, and docs-as-code practices.
 ---
 
 # Codebase Documentation Expert
 
-Covers the full documentation ecosystem for software projects: what to write, for whom, in what format, and how to make it useful to both humans and AI coding assistants.
+Provides multiple viewpoints and methodologies for reasoning about, analyzing, and
+documenting software systems. Two complementary modes:
 
-Key frameworks: **Diataxis** (four documentation types), **docs-as-code** (version-control and CI everything), **AI-context files** (CLAUDE.md / AGENTS.md).
+- **Analyze** — Read an existing codebase and produce structured documentation
+- **Author** — Write documentation following established frameworks and standards
 
-## Documentation Architecture
+## Quick Reference
+
+| Goal | Reference |
+|------|-----------|
+| **Analyzing an existing codebase** | |
+| Parallelized full-codebase analysis (16 agents, 5 waves → site-context skill) | [codebase-analysis-orchestration.md](references/codebase-analysis-orchestration.md) |
+| Manual 7-phase analysis workflow (single-agent, step-by-step) | [analysis-workflow.md](references/analysis-workflow.md) |
+| Viewtype catalog: what to analyze and what questions each view answers | [viewtypes-and-perspectives.md](references/viewtypes-and-perspectives.md) |
+| What to prioritize: cognitive load, depth heuristics, ROI | [prioritization-guide.md](references/prioritization-guide.md) |
+| **Writing documentation** | |
+| Documentation types (Diátaxis) and what every project needs | [diataxis-and-doc-types.md](references/diataxis-and-doc-types.md) |
+| Writing CLAUDE.md, AGENTS.md, or other AI context files | [ai-context-files.md](references/ai-context-files.md) |
+| GitHub repo standards, README anatomy, community health files | [github-standards.md](references/github-standards.md) |
+| Making code and architecture understandable to AI coding tools | [ai-readable-codebase.md](references/ai-readable-codebase.md) |
+| Tooling, automation, CI/CD for docs, docs-as-code practices | [documentation-as-code.md](references/documentation-as-code.md) |
+| **Both modes** | |
+| Which diagram type to use and when (selection guide) | [diagram-selection-guide.md](references/diagram-selection-guide.md) |
+| All 13 diagram types: full syntax, examples, and best practices | [diagrams.md](references/diagrams.md) |
+| All templates: analysis outputs, doc scaffolds, checklists | [templates.md](references/templates.md) |
+
+## Decision Tree: What Does the User Need?
+
+```
+What is the user trying to accomplish?
+│
+├── ANALYZE an existing codebase
+│   ├── "How does this system work?" (full onboarding)
+│   │   → Run analysis phases 1-7 → see analysis-workflow.md
+│   │   → Produce: System Overview, Container Map, Component Analysis
+│   │
+│   ├── "I need to fix a bug in X" (targeted understanding)
+│   │   → Orient (phase 1), then Trace Runtime (phase 3) focused on X
+│   │   → Produce: Sequence diagram of the relevant flow, interface docs
+│   │
+│   ├── "I need to add a feature" (extension point analysis)
+│   │   → Orient, Map Structure (phase 2), Surface Contracts (phase 4)
+│   │   → Produce: Component analysis of target area, dependency map
+│   │
+│   ├── "Where are the risks?" (risk/complexity audit)
+│   │   → Orient, Assess Risk (phase 6)
+│   │   → Produce: Integration point inventory, complexity hotspot map
+│   │
+│   └── "Generate an ARCHITECTURE.md" (specific artifact)
+│       → Phases 1-3, then produce ARCHITECTURE.md template
+│
+├── AUTHOR documentation
+│   ├── "What docs do I need?" → diataxis-and-doc-types.md § project phases
+│   ├── "Help me write a README" → github-standards.md § README anatomy
+│   ├── "Set up CLAUDE.md / AGENTS.md" → ai-context-files.md
+│   ├── "Write an ADR" → templates.md § ADR template
+│   ├── "Make this codebase AI-friendly" → ai-readable-codebase.md
+│   ├── "Set up docs CI/CD" → documentation-as-code.md
+│   └── "Which diagram type?" → diagrams.md § quick reference
+│
+└── BOTH (comprehensive documentation effort)
+    → Analyze first (phases 1-6), then author using analysis outputs
+    → Use templates.md for all output formats
+```
+
+## Core Methodological Framework
+
+This skill synthesizes six complementary methodologies. Each provides a different
+lens for reasoning about software:
+
+### 1. Viewtype Discipline (SEI Views and Beyond)
+Every question maps to a viewtype. Never mix viewtypes in one artifact:
+- **Module views** → How is code organized? What depends on what?
+- **Runtime views** → What runs, what connects, how does data flow?
+- **Allocation views** → Where does code deploy? Who owns what?
+
+### 2. Zoom Levels (C4 Model)
+Work top-down through four levels of abstraction:
+- **L1 Context** → System boundary, users, external systems
+- **L2 Container** → Separately-running processes and data stores
+- **L3 Component** → Major functional groupings within a container
+- **L4 Code** → Only when specific detail is needed
+
+### 3. Cross-Cutting Perspectives (Rozanski & Woods)
+Quality concerns that apply as lenses across all views:
+Security, Performance, Availability, Evolution, Scalability,
+Observability, Operability, Testability, Data Integrity, Compliance
+
+### 4. Cognitive Load Priority (Ousterhout)
+Document what creates the most cognitive load first:
+- Deep modules → document the interface, skip internals
+- Shallow modules → document everything (they leak complexity)
+- Cross-module dependencies → document every non-obvious coupling
+- Unknown unknowns → highest priority targets
+
+### 5. Documentation Types (Diátaxis)
+Each document serves exactly one purpose:
+- **Tutorial** → Learning by doing (guided lesson)
+- **How-to** → Solving a specific problem (assume competence)
+- **Reference** → Neutral, complete, structured for lookup
+- **Explanation** → Background, rationale, "why it works this way"
+
+### 6. Stability Patterns (Release It!)
+Every integration point needs failure mode documentation:
+Timeout, Circuit Breaker, Retry, Bulkhead, Fallback, Rate Limiting
+
+## Analysis Workflow Summary
+
+```
+1. ORIENT        → Tech stack, entry points, project shape
+2. MAP STRUCTURE → Modules, layers, dependencies (Module viewtype)
+3. TRACE RUNTIME → Request flows, data flow, communication patterns (C&C viewtype)
+4. SURFACE CONTRACTS → Interfaces, boundaries, invariants
+5. EXCAVATE DECISIONS → Reverse-engineer the "why" (inferred ADRs)
+6. ASSESS RISK  → Integration points, failure modes, complexity hotspots
+7. PRODUCE ARTIFACTS → Assemble deliverables using templates
+```
+
+Full procedures in [analysis-workflow.md](references/analysis-workflow.md).
+
+## Documentation Ecosystem Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -24,198 +152,77 @@ Key frameworks: **Diataxis** (four documentation types), **docs-as-code** (versi
 │  CODE_OF_CONDUCT  (community)        Named constants                │
 │  docs/ directory  (deep reference)   .claude/skills/               │
 │                                                                     │
-│  DIATAXIS FOUR TYPES (both audiences)                               │
+│  ARCHITECTURE VIEWS (both audiences)                                │
 │  ──────────────────────────────────────────────────────────────     │
-│  TUTORIALS          HOW-TO GUIDES     REFERENCE       EXPLANATION   │
-│  (learning)         (working)         (working)       (learning)    │
-│  Student follows    Solve real        Neutral facts   Conceptual    │
-│  guided lesson      world problem     and specs       background    │
+│  Module views          C&C views           Allocation views         │
+│  (code structure)      (runtime behavior)  (deployment/teams)       │
 │                                                                     │
-│  GITHUB SURFACES AUTOMATICALLY                                      │
-│  ──────────────────────────────                                     │
-│  README.md → repo homepage    CONTRIBUTING.md → new PR/issue flow   │
-│  SECURITY.md → Security tab   CODEOWNERS → auto reviewer assignment │
-│  LICENSE → prominently shown  .github/ISSUE_TEMPLATE/ → new issues  │
+│  DIAGRAM TYPES (always use Mermaid for AI readability)              │
+│  ──────────────────────────────────────────────────────────────     │
+│  C4 (L1-L3)   Sequence    ERD    State    Control Flow   Class      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Reference
-
-| Task | Reference |
-|------|-----------|
-| What documentation types exist? What should every project have? | [diataxis-and-doc-types.md](references/diataxis-and-doc-types.md) |
-| Writing CLAUDE.md, AGENTS.md, or other AI context files | [ai-context-files.md](references/ai-context-files.md) |
-| GitHub repo standards, README anatomy, community health files | [github-standards.md](references/github-standards.md) |
-| Tooling, automation, CI/CD for docs, docs-as-code practices | [documentation-as-code.md](references/documentation-as-code.md) |
-| Making code and architecture understandable to AI coding tools | [ai-readable-codebase.md](references/ai-readable-codebase.md) |
-| Diagram types (C4, Mermaid, sequence, ERD, state, ASCII) — which to use and how to write AI-readable diagrams | [diagrams.md](references/diagrams.md) |
-| Templates and checklists (README, ADR, CLAUDE.md, PR template) | [templates.md](references/templates.md) |
-
-## Reference Files
-
-| File | Key Topics |
-|------|-----------|
-| `diataxis-and-doc-types.md` | Diataxis (tutorials/how-to/reference/explanation), all doc types per project phase, priority matrix, common anti-patterns |
-| `ai-context-files.md` | CLAUDE.md/AGENTS.md best practices, what to include/exclude, multi-tool ecosystem, size constraints, import syntax, skills |
-| `github-standards.md` | README anatomy, files GitHub auto-surfaces, wikis vs. docs/, community health files, CODEOWNERS, issue templates |
-| `documentation-as-code.md` | Docs in version control, PR-based review, CI link-checking/linting, automated API doc generation, Vale, Repomix |
-| `ai-readable-codebase.md` | Context window design, directory structure, docstrings, type annotations, architecture docs for AI, test infrastructure as docs |
-| `diagrams.md` | Text-based vs. image diagrams, C4 model (L1/L2/L3), Mermaid types (sequence/ERD/state/class/C4), ASCII art, AI-readable diagram rules |
-| `templates.md` | Ready-to-use templates: README, CLAUDE.md, ADR, PR description template, CONTRIBUTING.md outline |
-
-## Core Decision Trees
-
-### What Documentation Does This Project Need?
-
-```
-What stage is this project at?
-├── Brand new / prototype
-│   ├── README.md (what it is + how to run it)
-│   ├── LICENSE
-│   └── CLAUDE.md / AGENTS.md (if using AI tools)
-├── Open source / accepting contributors
-│   ├── All of the above, plus:
-│   ├── CONTRIBUTING.md
-│   ├── CODE_OF_CONDUCT.md
-│   ├── SECURITY.md
-│   ├── CHANGELOG.md
-│   └── .github/ (issue templates, PR template)
-└── Production system / team product
-    ├── All of the above, plus:
-    ├── Architecture doc (ARCHITECTURE.md or docs/architecture/)
-    ├── ADRs (docs/decisions/)
-    ├── API reference (OpenAPI, generated from code)
-    ├── Runbook / operations guide
-    └── Onboarding guide for new engineers
-```
-
-### Which Documentation Type Should I Write?
-
-```
-Who is the reader and what are they trying to do?
-├── Wants to learn by doing → Tutorial
-│   └── Guide them through a task; outcome matters more than explanation
-├── Knows the system, solving a specific problem → How-to Guide
-│   └── Step-by-step; assume competence; don't explain why
-├── Looking up a fact, option, or spec → Reference
-│   └── Neutral, complete, consistent structure; no narrative
-└── Wants to understand the system deeply → Explanation
-    └── Background, rationale, trade-offs, "why it works this way"
-
-CRITICAL: Each document should be exactly ONE of these types.
-Mixing types (e.g., tutorial with embedded explanation) is the #1 cause of confusing docs.
-```
-
-### Is My CLAUDE.md / AGENTS.md the Right Length?
-
-```
-How many lines is your AI context file?
-├── Under 100 lines → Good target for most projects
-├── 100–300 lines → Acceptable for large/complex repos; review for bloat
-└── Over 300 lines → Too long; AI will ignore parts of it
-    └── Audit each line: "Would Claude make a mistake without this?"
-        ├── No → Delete it
-        ├── Yes, but Claude already knows this convention → Delete it
-        └── Yes, and it's non-obvious → Keep it
-
-Signs of a bloated CLAUDE.md:
-- Restating standard language conventions (PEP 8, etc.)
-- Generic platitudes ("write clean code", "be helpful")
-- Detailed API docs that should live in reference files
-- Content that changes frequently
-- Rules without a positive alternative
-```
-
-### How Should I Structure Docs for AI vs. Human Readers?
-
-```
-Is this documentation primarily for AI coding assistants?
-├── Yes (CLAUDE.md, AGENTS.md, subdirectory context files)
-│   ├── Lead with build/test/lint commands (highest signal)
-│   ├── Use imperative bullet points, not prose paragraphs
-│   ├── Be explicit about non-obvious conventions only
-│   ├── Reference longer docs with @path/to/file instead of embedding
-│   └── Test it: if Claude makes a mistake, add the rule; otherwise don't
-└── No (README, architecture docs, tutorials)
-    ├── Structure with Diataxis (pick one type per document)
-    ├── Use headings, tables, code blocks — not walls of prose
-    ├── Put the most important information first (inverted pyramid)
-    ├── Include runnable examples that are tested in CI
-    └── Link to deeper content rather than embedding everything
-```
-
-### Which Diagram Type Should I Use?
+## Diagram Type Selection
 
 ```
 What question are you trying to answer?
-├── What does the system do and who uses it? → C4 Level 1 Context
-├── What services/apps make up the system? → C4 Level 2 Container
+├── What is inside vs outside the system? → Context diagram (C4 L1)
+├── What are the major parts? → Component diagram (C4 L2/L3)
 ├── What calls what, in what order? → Sequence diagram
-├── What fields/tables exist and how are they related? → ERD
-├── What states can an object be in? → State machine diagram
-├── How do classes relate (OOP)? → Class diagram
-├── How does data flow step-by-step? → Flowchart
-└── Need to embed in CLAUDE.md, ADR, or code comment? → ASCII art
+├── What states can this object be in? → State diagram
+├── How is the data organized? → ERD
+├── What does this function do step by step? → Control flow (flowchart)
+├── Where does this code execute? → Deployment diagram
+├── Why does this software exist? → Use case diagram / actor-goal table
+├── What exact rules drive this behavior? → Decision table
+├── What meaningful events happen? → Event catalog / flow timeline
+├── What breaks if I change this? → Dependency analysis
+├── Which service can change this data? → CRUD matrix
+├── How do these classes relate (OOP)? → Class diagram
+└── Need to embed in CLAUDE.md or code comment? → ASCII art
 
-Format rule: AI tools can READ text-based diagrams (Mermaid, ASCII).
-They CANNOT reliably read PNG/SVG image files.
-Use Mermaid in ```mermaid code blocks for AI-readable diagrams.
-See diagrams.md for full reference with examples.
+For detailed guidance on which diagrams to use for your specific goal,
+audience, and system type, see diagram-selection-guide.md.
+Format rule: Use Mermaid in ```mermaid blocks for AI-readable diagrams.
+See diagrams.md for full syntax, examples, and best practices.
 ```
 
-### Do I Have an Architecture Documentation Problem?
+## Automated Codebase Analysis
 
-```
-Can a new engineer understand the system from your docs?
-├── Can they name the 5–10 major components and what each does? → Architecture doc
-├── Do they know why key design decisions were made? → ADRs
-├── Can they deploy and operate the system? → Runbook
-└── Can they get their dev environment working in < 1 hour? → Onboarding guide
+This skill includes an installable orchestrator command and worker agent that
+automate the full analysis workflow, producing a `site-context` skill in the
+target repository.
 
-For AI tools specifically:
-├── Would Claude reinvent a deliberate constraint? → Add an ADR explaining why
-├── Does Claude generate code for the wrong architecture? → Add ARCHITECTURE.md
-└── Does Claude use wrong commands? → Check CLAUDE.md has exact build/test invocations
+### Install
+
+```bash
+bash ${CLAUDE_SKILL_DIR}/scripts/install.sh
 ```
 
-## Key Concepts at a Glance
+This copies to the target project:
+- `.claude/commands/analyze-codebase.md` — orchestrator command (invoke with `/analyze-codebase`)
+- `.claude/agents/codebase-analyzer.md` — background worker agent
 
-### The Diataxis Four (one sentence each)
+### Run
 
-| Type | One-sentence rule |
-|------|------------------|
-| Tutorial | Take the learner by the hand through a meaningful, achievable task |
-| How-to Guide | A series of steps to achieve a specific goal — assume competence, skip backstory |
-| Reference | Describe the machinery, neutrally and completely, structured for lookup not reading |
-| Explanation | Discuss the topic from multiple angles, give context, explain trade-offs and history |
+```
+/analyze-codebase
+```
 
-### Documentation Priority Matrix
+Launches 16 agents across 5 waves, producing `.claude/skills/site-context/` with
+14 reference files covering all 13 analysis types. See
+[codebase-analysis-orchestration.md](references/codebase-analysis-orchestration.md)
+for the full wave execution plan and diagram inventory.
 
-| Document | Audience | Priority | Format |
-|----------|---------|---------|--------|
-| README.md | Everyone | Critical | Markdown |
-| LICENSE | Everyone | Critical | Plain text |
-| CLAUDE.md / AGENTS.md | AI agents | Critical if using AI tools | Markdown |
-| CONTRIBUTING.md | Contributors | Critical for OSS | Markdown |
-| SECURITY.md | Security reporters | Critical | Markdown |
-| CHANGELOG.md | Users, operators | High | Markdown |
-| Architecture doc | Developers | High | Markdown + diagrams |
-| ADRs | Developers, future maintainers | High | Markdown |
-| API reference | API consumers | High | OpenAPI / generated |
-| Code docstrings | AI agents, developers | High | Language-native |
-| Runbook | Operators | High for deployed systems | Markdown |
-| How-to guides | Users, developers | Medium-High | Markdown |
-| Tutorials | New users | Medium | Markdown |
-| Onboarding guide | New team members | Medium | Markdown |
-| CODE_OF_CONDUCT.md | Community | Medium for OSS | Markdown |
+## Anti-Patterns
 
-### Anti-Patterns Quick List
-
-- **Wall of text**: no structure, can't scan → use headings, tables, bullets
-- **Type mixing**: tutorial + explanation in one page → one Diataxis type per doc
-- **Stale docs left in place**: outdated content actively misleads AI → archive or delete
-- **Broken examples**: code snippets that don't run → treat examples as tests
-- **CLAUDE.md bloat**: too many rules → AI ignores them; ruthlessly prune
-- **Docs divorced from code**: separate repo drifts → colocate; update together in PRs
-- **README as dumping ground**: 5,000-word README → hub with links to `docs/`
-- **No error documentation**: silent failures → document common errors and fixes
+- **Boiling the ocean**: Documenting everything at once → Let user needs guide depth
+- **Describing the obvious**: Restating what code says → Focus on the "why"
+- **Wrong abstraction level**: Code detail before understanding containers → Follow C4 top-down
+- **Mixing viewtypes**: Structure + behavior in one diagram → One viewtype per artifact
+- **Type mixing**: Tutorial + explanation in one page → One Diátaxis type per doc
+- **CLAUDE.md bloat**: Too many rules → AI ignores them; ruthlessly prune
+- **Ignoring failure modes**: Only the happy path → Every integration point gets failure docs
+- **Stale docs left in place**: Outdated content misleads → Archive or delete
+- **Snapshot without rationale**: Pure structure, no "why" → Always include inferred decisions

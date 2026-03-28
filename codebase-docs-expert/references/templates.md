@@ -1,5 +1,5 @@
-# Documentation Templates and Checklists
-## Ready-to-Use Templates for README, CLAUDE.md, ADR, CONTRIBUTING.md, and More
+# Templates and Checklists
+## Documentation Authoring Templates and Codebase Analysis Output Templates
 
 ---
 
@@ -368,50 +368,56 @@ Save as `.github/PULL_REQUEST_TEMPLATE.md`
 # Architecture
 
 ## Overview
+[2-3 sentences: what the system does, its primary architectural style,
+and the key quality attributes it optimizes for]
 
-[2–4 sentences describing the system: what it does, what scale it operates at,
-and what its key characteristics are (e.g., event-driven, microservices, etc.)]
+## System Context
 
-## Components
+[C4 Level 1 Mermaid diagram]
 
-| Component | Technology | Responsibility |
-|-----------|-----------|---------------|
-| [name] | [tech] | [what it does] |
-| [name] | [tech] | [what it does] |
+[Brief description of users and external systems]
+
+## Container Architecture
+
+[C4 Level 2 Mermaid diagram]
+
+| Container | Technology | Purpose |
+|-----------|-----------|---------|
+| [name] | [tech] | [responsibility] |
+
+## Key Components
+
+[For each major container, a brief component summary with diagram]
 
 ## Data Flow
 
-```
-[ASCII or Mermaid diagram showing how data moves through the system]
+[Mermaid diagram showing primary data flows]
 
-Client → [component] → [component]
-              ↓
-         [storage]
-```
+## Key Decisions
+
+| Decision | Rationale | Alternatives Considered |
+|----------|-----------|------------------------|
+| [what] | [why] | [what else was considered] |
 
 ## External Dependencies
 
-| Service | Purpose | Access Method |
-|---------|---------|--------------|
-| [service] | [what it's used for] | [SDK / REST / credentials in Secrets Manager] |
+| Dependency | Purpose | Failure Impact |
+|-----------|---------|----------------|
+| [name] | [why we use it] | [what happens if it's down] |
 
-## Infrastructure
+## Development
 
-[Brief description: cloud provider, deployment model, environments]
+### Directory Structure
+[Tree with annotations]
 
-See `infra/` for Terraform/CDK/CloudFormation definitions.
+### Key Conventions
+[Non-obvious patterns a developer should know]
 
-## Significant Design Decisions
+### Extension Points
+[Where and how to add new functionality]
 
-| Decision | ADR |
-|----------|-----|
-| [Why we use X instead of Y] | [ADR-0001](decisions/0001-title.md) |
-| [Why we don't do Z] | [ADR-0003](decisions/0003-title.md) |
-
-## What Is Out of Scope
-
-[Explicitly state what this system does NOT do, to prevent scope creep
-and misguided "improvements" by contributors or AI tools]
+## Out of Scope
+[What this system deliberately does NOT handle and where those concerns live]
 ```
 
 ---
@@ -472,3 +478,337 @@ Use this to audit documentation health:
 - [ ] Do all public functions have type annotations?
 - [ ] Do files have module-level docstrings?
 - [ ] Are significant constraints explained in ADRs and referenced from CLAUDE.md?
+
+---
+
+# Analysis Output Templates
+
+Templates for documentation artifacts produced by codebase analysis.
+Fill in brackets with actual values from the analysis.
+
+---
+
+## System Overview
+
+One-page summary for anyone encountering the system for the first time.
+
+```markdown
+# [System Name] — System Overview
+
+## What It Does
+[1-2 sentences: what problem does this system solve and for whom]
+
+## Tech Stack
+| Layer | Technology |
+|-------|-----------|
+| Language | [e.g., TypeScript 5.x] |
+| Framework | [e.g., Next.js 14] |
+| Database | [e.g., PostgreSQL 16] |
+| Cache | [e.g., Redis 7] |
+| Message Broker | [e.g., RabbitMQ] |
+| Infrastructure | [e.g., AWS ECS, Terraform] |
+
+## System Context
+
+[C4 Level 1 Mermaid diagram here]
+
+## Key Entry Points
+| Entry Point | Location | Purpose |
+|-------------|----------|---------|
+| [e.g., API routes] | [file path] | [what it handles] |
+
+## Directory Structure
+[Top-level directory tree with one-line purpose per directory]
+
+## How to Run
+[Build/run commands from package manifest or README]
+```
+
+---
+
+## Container Diagram
+
+For systems with multiple services, databases, or separately-deployed units.
+
+```markdown
+# [System Name] — Container Diagram
+
+[C4 Level 2 Mermaid diagram]
+
+## Container Inventory
+
+| Container | Technology | Responsibility | Port/Protocol |
+|-----------|-----------|---------------|---------------|
+| [name] | [tech] | [one sentence] | [e.g., :8080/HTTP] |
+
+## Communication Flows
+
+| From | To | Protocol | Purpose |
+|------|-----|----------|---------|
+| [source] | [target] | [HTTP/gRPC/AMQP/SQL] | [what data flows] |
+```
+
+---
+
+## Component Analysis
+
+For documenting the internals of a single container or major module.
+
+```markdown
+# [Container/Module Name] — Component Analysis
+
+## Overview
+[1-2 sentences: what this container does and its architectural style]
+
+## Component Map
+
+[C4 Level 3 Mermaid diagram or module dependency diagram]
+
+## Components
+
+### [Component Name]
+- **Responsibility**: [what it does]
+- **Location**: [directory/file path]
+- **Public interface**: [key exported functions/classes]
+- **Dependencies**: [what it imports from other components]
+- **Key patterns**: [e.g., repository pattern, strategy, middleware chain]
+
+[Repeat for each component]
+
+## Layer Structure
+[If applicable: diagram showing layers and dependency direction]
+
+## Internal Data Flow
+[Mermaid flowchart showing how data moves between components]
+```
+
+---
+
+## Request Flow Trace
+
+Documents a single end-to-end flow through the system.
+
+```markdown
+# Flow: [Flow Name]
+
+## Summary
+[One sentence: what this flow accomplishes]
+
+## Trigger
+[What initiates this flow: HTTP request, event, cron job, etc.]
+
+## Sequence
+
+[Mermaid sequence diagram]
+
+## Step-by-Step
+
+| Step | Component | Action | File:Line |
+|------|-----------|--------|-----------|
+| 1 | [component] | [what happens] | [path:line] |
+| 2 | [component] | [what happens] | [path:line] |
+
+## Data Transformations
+[How the request/data shape changes at each step]
+
+## Error Paths
+| Error Condition | Where Caught | Response |
+|----------------|-------------|----------|
+| [condition] | [file:line] | [what happens] |
+
+## Side Effects
+[Events emitted, logs written, metrics recorded, external calls made]
+```
+
+---
+
+## Interface Catalog
+
+Documents the contract for a key interface or module boundary.
+
+```markdown
+# Interface: [Interface Name]
+
+## Location
+[File path and line number]
+
+## Purpose
+[One sentence: what this interface represents]
+
+## Provided Resources
+
+### [Method/Function Name]
+- **Signature**: `[full signature]`
+- **Purpose**: [what it does]
+- **Parameters**: [name, type, constraints for each]
+- **Returns**: [type and meaning]
+- **Preconditions**: [what must be true before calling]
+- **Postconditions**: [what is guaranteed after success]
+- **Side effects**: [state changes, events, external calls]
+- **Error conditions**: [what can go wrong, error types thrown]
+
+[Repeat for each method]
+
+## Required Dependencies
+[What the implementing module needs from its environment]
+
+## Usage Example
+[Minimal code example showing correct usage]
+
+## Invariants
+[Rules that must always hold for implementations of this interface]
+```
+
+---
+
+## Inferred ADR
+
+For architectural decisions reverse-engineered from code.
+
+```markdown
+# ADR-[N]: [Decision Title]
+
+**Status**: Inferred from code (not explicitly documented)
+**Date**: [Approximate from git history, or "unknown"]
+**Confidence**: [High|Medium|Low — how certain is this inference]
+
+## Context
+[Forces and constraints that likely drove this decision.
+State as facts observed in the code, not speculation.]
+
+## Decision
+[What was decided. State as "The system uses X" or "The team chose X over Y".]
+
+## Evidence
+- [Code location 1 that supports this inference]
+- [Code location 2]
+- [Git history evidence if applicable]
+
+## Consequences
+### Positive
+- [Benefit observed in the codebase]
+
+### Negative
+- [Trade-off or limitation observed]
+
+### Neutral
+- [Side effect that is neither good nor bad]
+```
+
+---
+
+## Integration Point Inventory
+
+Catalogs every external dependency with its failure characteristics.
+
+```markdown
+# Integration Point Inventory
+
+## Summary
+[N] external integration points identified. [M] have explicit failure protection.
+
+## Inventory
+
+### [Integration Point Name]
+- **Type**: [HTTP API | Database | Message Queue | File System | External Service]
+- **Location**: [file paths where this integration is used]
+- **Protocol**: [HTTP/gRPC/AMQP/SQL/etc.]
+- **Authentication**: [API key | OAuth | mTLS | none]
+- **Failure modes**:
+  - Timeout: [configured? value? fallback?]
+  - Unavailable: [circuit breaker? retry? degraded mode?]
+  - Slow response: [timeout configured? queue depth limit?]
+  - Error response: [error handling? retry on specific codes?]
+- **Stability patterns in place**:
+  - [ ] Timeout configured
+  - [ ] Circuit breaker
+  - [ ] Retry with backoff
+  - [ ] Bulkhead (isolated pool)
+  - [ ] Fallback/degraded mode
+  - [ ] Rate limiting
+- **Monitoring**: [metrics? alerts? dashboard?]
+
+[Repeat for each integration point]
+
+## Coverage Matrix
+
+| Integration Point | Timeout | Circuit Breaker | Retry | Bulkhead | Fallback |
+|-------------------|---------|-----------------|-------|----------|----------|
+| [name] | [Y/N] | [Y/N] | [Y/N] | [Y/N] | [Y/N] |
+```
+
+---
+
+## Where to Look Guide
+
+Quick-reference for developers working in the codebase.
+
+```markdown
+# Where to Look
+
+## "I need to..."
+
+| Task | Start Here | Key Files |
+|------|-----------|-----------|
+| Add a new API endpoint | [directory] | [key files] |
+| Add a new database table | [directory] | [migration path, model path] |
+| Modify business logic for X | [directory] | [service/use case files] |
+| Add a new background job | [directory] | [worker/job files] |
+| Change authentication | [directory] | [auth middleware files] |
+| Update external API integration | [directory] | [client/adapter files] |
+| Add a new event/notification | [directory] | [event handler files] |
+| Fix a failing test | [directory] | [test config, fixtures] |
+| Update deployment config | [directory] | [IaC files, CI config] |
+
+## Common Patterns in This Codebase
+
+### [Pattern Name]
+**Where**: [directory/file pattern]
+**How it works**: [1-2 sentences]
+**Example**: [one concrete instance with file path]
+
+[Repeat for 3-5 key patterns]
+
+## Gotchas
+[Non-obvious things that trip people up — ordered by how frequently they bite]
+
+| Gotcha | Why It Happens | What to Do |
+|--------|---------------|------------|
+| [surprise] | [root cause] | [correct approach] |
+```
+
+---
+
+## Complexity Hotspot Report
+
+For risk and maintainability assessments.
+
+```markdown
+# Complexity Hotspot Report
+
+## Summary
+[N] hotspots identified. Top concerns: [1-2 sentence summary].
+
+## Hotspots (by severity)
+
+### 1. [Hotspot Name/Area]
+- **Location**: [file paths]
+- **Indicators**: [what makes this complex — high churn, deep nesting, many dependencies, etc.]
+- **Cognitive load**: [High|Medium] — [why this is hard to understand]
+- **Risk**: [what could go wrong when modifying this area]
+- **Recommendation**: [refactor suggestion or documentation needed]
+
+[Repeat, ordered by severity]
+
+## Churn Analysis
+| File | Changes (last 6mo) | Last Modified | Complexity Indicator |
+|------|-------------------|---------------|---------------------|
+| [path] | [count] | [date] | [what makes it complex] |
+
+## Dependency Hotspots
+[Files/modules with highest fan-in or fan-out]
+
+| Module | Fan-In | Fan-Out | Risk |
+|--------|--------|---------|------|
+| [name] | [count] | [count] | [assessment] |
+```
