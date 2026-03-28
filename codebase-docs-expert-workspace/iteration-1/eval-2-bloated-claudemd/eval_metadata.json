@@ -1,0 +1,37 @@
+{
+  "eval_id": 2,
+  "eval_name": "bloated-claudemd-diagnosis-and-fix",
+  "prompt": "I have a CLAUDE.md file for my Java Spring Boot microservices repo and Claude keeps ignoring parts of it. [see full prompt in evals.json]",
+  "assertions": [
+    {
+      "id": "identifies-too-long-root-cause",
+      "text": "Identifies that the file is too long / has too many rules as the root cause of Claude ignoring parts",
+      "check": "response identifies length, number of rules, or context limit as the root cause"
+    },
+    {
+      "id": "recommends-deleting-platitudes",
+      "text": "Recommends deleting generic platitudes (e.g., 'write clean readable code', 'follow SOLID principles', 'use meaningful variable names')",
+      "check": "response recommends removing at least some of the generic/standard rules"
+    },
+    {
+      "id": "keeps-non-obvious-rules",
+      "text": "Identifies non-obvious project-specific rules worth keeping (e.g., PostgreSQL for integration tests, Flyway, JPA-not-native-SQL)",
+      "check": "response identifies at least one non-obvious rule to keep (integration test DB requirement, Flyway, JPA policy, etc.)"
+    },
+    {
+      "id": "elevates-commands",
+      "text": "Recommends putting commands (build/test/run) prominently or first",
+      "check": "response recommends elevating or prioritizing the commands section"
+    },
+    {
+      "id": "provides-revised-file-or-clear-guidance",
+      "text": "Provides either a revised shorter CLAUDE.md or explicit keep/delete/move guidance for each rule category",
+      "check": "response provides actionable guidance (revised template or categorized list), not just abstract advice"
+    },
+    {
+      "id": "mentions-size-target",
+      "text": "Mentions a target size or line count for CLAUDE.md",
+      "check": "response mentions a size target (e.g., under 150 lines, under 300 lines, 60 lines, etc.)"
+    }
+  ]
+}

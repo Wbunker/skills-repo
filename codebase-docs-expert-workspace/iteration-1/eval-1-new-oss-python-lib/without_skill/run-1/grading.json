@@ -1,0 +1,13 @@
+{
+  "summary": {"pass_rate": 1.0, "passed": 8, "failed": 0, "total": 8},
+  "expectations": [
+    {"text": "Recommends creating a README.md", "passed": true, "evidence": "Phase 1 item #1 is README.md with detailed content guidance"},
+    {"text": "Recommends adding a LICENSE file", "passed": true, "evidence": "Phase 1 item #2 is LICENSE"},
+    {"text": "Recommends creating CLAUDE.md or AGENTS.md for AI tooling", "passed": true, "evidence": "Phase 2 item #4 is CLAUDE.md with a worked example"},
+    {"text": "Recommends CONTRIBUTING.md for contributor guidance", "passed": true, "evidence": "Phase 1 item #3 is CONTRIBUTING.md"},
+    {"text": "Mentions at least one of: SECURITY.md, CODE_OF_CONDUCT.md, CHANGELOG.md", "passed": true, "evidence": "Mentions CHANGELOG.md (Phase 3) and CODE_OF_CONDUCT.md (Phase 3). SECURITY.md not explicitly mentioned."},
+    {"text": "Prioritizes the docs — distinguishes immediate vs. later", "passed": true, "evidence": "Organized into 4 phases with priority ordering"},
+    {"text": "Specifically addresses AI-readability: commands in CLAUDE.md, type annotations, or docstrings", "passed": true, "evidence": "CLAUDE.md section includes exact commands and explains why architecture context prevents wrong AI suggestions"},
+    {"text": "Recommends documenting build/test/lint commands explicitly", "passed": true, "evidence": "CLAUDE.md example includes pytest, ruff check src/, mypy src/"}
+  ]
+}

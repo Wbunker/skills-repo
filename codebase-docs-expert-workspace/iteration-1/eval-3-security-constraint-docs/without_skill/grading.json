@@ -1,0 +1,39 @@
+{
+  "eval_id": 3,
+  "configuration": "without_skill",
+  "assertions": [
+    {
+      "text": "Recommends writing an ADR explaining the UserRepository requirement",
+      "passed": true,
+      "evidence": "Layer 2c includes a full ADR template as docs/adr/0012-user-repository-mandatory.md"
+    },
+    {
+      "text": "Recommends adding an entry to CLAUDE.md or AGENTS.md",
+      "passed": true,
+      "evidence": "Layer 4a is CLAUDE.md/.cursorrules with a Data Access Rules section"
+    },
+    {
+      "text": "States the positive alternative in the constraint (use UserRepository, not just prohibition)",
+      "passed": true,
+      "evidence": "CLAUDE.md entry includes 'ALWAYS use UserRepository to access user data'"
+    },
+    {
+      "text": "Explains why documenting the 'why' is important specifically for AI tools",
+      "passed": false,
+      "evidence": "Response mentions AI tools weight concrete examples heavily and includes AI-specific signals section, but does not explain that the ADR prevents AI from removing/refactoring the constraint. The 'why' is framed as useful but not explained as a guard against AI optimization."
+    },
+    {
+      "text": "Recommends at least one code-level documentation mechanism",
+      "passed": true,
+      "evidence": "Layer 1a covers deprecation annotations; Layer 2b covers inline comments on UserRepository"
+    },
+    {
+      "text": "Addresses both human engineers and AI tools explicitly",
+      "passed": true,
+      "evidence": "Response has dedicated sections for Layer 4 AI-Specific Signals alongside human-focused layers"
+    }
+  ],
+  "pass_count": 5,
+  "total_count": 6,
+  "pass_rate": 0.833
+}

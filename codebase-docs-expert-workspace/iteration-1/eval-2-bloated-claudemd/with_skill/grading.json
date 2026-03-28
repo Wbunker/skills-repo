@@ -1,0 +1,39 @@
+{
+  "eval_id": 2,
+  "configuration": "with_skill",
+  "assertions": [
+    {
+      "text": "Identifies that the file is too long / has too many rules as the root cause",
+      "passed": true,
+      "evidence": "Opens with 'The Core Problem: Bloat' — 21 rules, useful rules diluted, 'The target is under 150 lines'"
+    },
+    {
+      "text": "Recommends deleting generic platitudes",
+      "passed": true,
+      "evidence": "Table of rules to delete includes: 'Write clean readable code', 'Follow SOLID principles', 'Use dependency injection', 'Use meaningful variable names', 'Tests should follow AAA pattern', 'Use Optional'"
+    },
+    {
+      "text": "Identifies non-obvious project-specific rules worth keeping",
+      "passed": true,
+      "evidence": "Explicitly keeps: Integration test PostgreSQL requirement ('project-specific thing Claude needs'), JPA-not-native-SQL, Flyway mentioned in revised CLAUDE.md"
+    },
+    {
+      "text": "Recommends putting commands prominently or first",
+      "passed": true,
+      "evidence": "'Commands are prominent: Claude looks for commands near the top. Burying mvn spring-boot:run in a flat list... meant it had equal weight with use meaningful variable names'"
+    },
+    {
+      "text": "Provides either a revised shorter CLAUDE.md or explicit keep/delete/move guidance",
+      "passed": true,
+      "evidence": "Provides a full 28-line revised CLAUDE.md; also provides line-by-line audit table with Delete/Rewrite/Move categories"
+    },
+    {
+      "text": "Mentions a target size or line count for CLAUDE.md",
+      "passed": true,
+      "evidence": "'The target is under 150 lines for most projects'"
+    }
+  ],
+  "pass_count": 6,
+  "total_count": 6,
+  "pass_rate": 1.0
+}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "codebase-docs-expert",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just started a new open source Python library for parsing structured log files. Right now I only have a src/ directory with some .py files and a basic setup.py. What documentation do I need to create, and in what order should I tackle it? I want to make it easy for contributors to join and also for AI tools like Claude to understand the codebase.",
+      "expected_output": "Prioritized list of documentation to create, with rationale. Should cover: README, LICENSE, CONTRIBUTING.md, CLAUDE.md/AGENTS.md with commands, SECURITY.md. Should explain the Diataxis types or at minimum distinguish between getting-started vs. reference docs. Should call out AI-specific concerns (CLAUDE.md with test/lint commands, type annotations, docstrings).",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I have a CLAUDE.md file for my Java Spring Boot microservices repo and Claude keeps ignoring parts of it. Here's what's in it:\n\n# Project Rules\n- Always use Java 17\n- Write clean, readable code\n- Follow SOLID principles\n- Use dependency injection\n- Never use System.out.println, use SLF4J logger instead\n- Use meaningful variable names\n- Tests should follow AAA pattern (Arrange, Act, Assert)\n- All REST endpoints must be documented with Swagger annotations\n- Database queries must use JPA repositories, not native SQL\n- Use Optional to avoid null pointer exceptions\n- Exception handling should use @ControllerAdvice\n- All service methods should be transactional\n- Never hardcode configuration values, use application.properties\n- Integration tests require a running PostgreSQL instance on port 5432\n- Build: mvn clean package\n- Test: mvn test\n- Run: mvn spring-boot:run\n- The main application class is in com.example.app\n- We use Flyway for database migrations\n- Frontend is in a separate repo\n- CI runs on GitHub Actions, see .github/workflows/ci.yml\n\nWhat's wrong with this and how should I fix it?",
+      "expected_output": "Should identify: file is too long / has too many rules causing Claude to ignore parts. Should categorize rules into: delete (generic platitudes like 'write clean code', 'SOLID principles'), keep (non-obvious project-specific: integration test PostgreSQL requirement, Flyway, JPA-not-native-SQL), restructure (commands should come first). Should provide a shorter, better-organized version.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My team keeps making the same architectural mistake — our new engineers (and Claude!) keep writing direct SQL queries against our user table instead of going through the UserRepository abstraction layer we built. We have a UserRepository for a reason: it enforces row-level security by always adding a tenant_id filter. Direct queries bypass this and would be a serious security vulnerability. How should I document this constraint so that both human engineers and AI coding assistants respect it?",
+      "expected_output": "Should recommend: (1) an ADR explaining the security reason for UserRepository requirement, (2) referencing the ADR from CLAUDE.md with the positive alternative stated ('use UserRepository, not direct SQL; see ADR-0005 for why'), (3) possibly adding a code comment or annotation at the raw DB connection point. Should explain why the 'why' matters for AI tools (prevents 'improvements' that remove the constraint).",
+      "files": []
+    }
+  ]
+}

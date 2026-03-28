@@ -1,0 +1,37 @@
+{
+  "eval_id": 3,
+  "eval_name": "security-constraint-docs-for-ai-and-humans",
+  "prompt": "My team keeps making the same architectural mistake — new engineers and Claude keep writing direct SQL instead of using UserRepository which enforces tenant_id row-level security. How should I document this constraint so both humans and AI respect it?",
+  "assertions": [
+    {
+      "id": "recommends-adr",
+      "text": "Recommends writing an ADR (Architecture Decision Record) explaining the UserRepository requirement",
+      "check": "response recommends an ADR or architecture decision record"
+    },
+    {
+      "id": "recommends-claude-md-entry",
+      "text": "Recommends adding an entry to CLAUDE.md or AGENTS.md for this constraint",
+      "check": "response recommends adding the constraint to CLAUDE.md or AGENTS.md"
+    },
+    {
+      "id": "states-positive-alternative",
+      "text": "States the positive alternative in the constraint (use UserRepository, not just 'no direct SQL')",
+      "check": "response frames the constraint with the positive alternative (use UserRepository) not just the prohibition"
+    },
+    {
+      "id": "explains-why-why-matters-for-ai",
+      "text": "Explains why documenting the 'why' is important specifically for AI tools (prevents AI from 'improving' away the constraint)",
+      "check": "response explains that AI tools need the 'why' to avoid removing deliberate constraints"
+    },
+    {
+      "id": "mentions-code-level-docs",
+      "text": "Recommends at least one code-level documentation mechanism (comment at DB access point, custom exception type, ADR comment in code, etc.)",
+      "check": "response recommends at least one form of code-level or inline documentation"
+    },
+    {
+      "id": "addresses-both-audiences",
+      "text": "Addresses both human engineers and AI tools explicitly (not just one)",
+      "check": "response explicitly addresses both human engineers and AI coding assistants"
+    }
+  ]
+}
