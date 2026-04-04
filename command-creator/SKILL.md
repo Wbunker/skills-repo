@@ -163,7 +163,9 @@ Results are summarized back into the main conversation.
 
 ### Background subagent pattern
 
-Add `background: true` to run without blocking the main conversation:
+Add `background: true` to run without blocking the main conversation.
+
+> **Do not use `context: fork` on a command whose job is to orchestrate other agents.** `context: fork` makes the command itself a subagent, and subagents cannot use the Agent tool — any agent dispatch will silently fail. Orchestrating commands must run in the main conversation (no `context: fork`).
 
 ```yaml
 ---

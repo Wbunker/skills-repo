@@ -175,29 +175,25 @@ For project-level hooks that respond to any agent starting/stopping, use `Subage
 
 ### How the Agent tool actually works
 
-The `subagent_type` field only accepts **built-in** types: `general-purpose`, `Explore`, `Plan`, `claude-code-guide`, `repo-analyzer`, etc.
-
-**Custom project agents (`.claude/agents/*.md`) cannot be invoked via `subagent_type`** — doing so errors with "Agent type 'my-agent' not found".
-
-When `subagent_type` is omitted, the Agent tool always runs **general-purpose** — it does NOT auto-route to custom agents. Custom agent `.md` files serve as:
-1. Documentation / reference for the workflow
-2. Auto-delegation targets when Claude in the **main conversation** (not via Agent tool) decides to delegate a task based on description matching
+Claude Code registers each `.claude/agents/*.md` file at startup using its `name` field. Custom agents are fully callable by `subagent_type`:
 
 ```python
-# WRONG — errors: "Agent type 'my-agent' not found"
-Agent(subagent_type="my-agent", prompt="do the thing")
-
-# Runs general-purpose, NOT your custom agent
-Agent(prompt="<task>")
-
-# CORRECT for background parallel work: embed full instructions in the prompt
+# Preferred — explicit, no matching ambiguity
 Agent(
-  prompt="<full workflow steps here>",
+  subagent_type="my-custom-agent",
+  prompt="<task>",
+  run_in_background=True
+)
+
+# Also valid — auto-delegation when you want dynamic routing
+# Claude picks the best matching agent based on description
+Agent(
+  prompt="<task>",
   run_in_background=True
 )
 ```
 
-**Practical implication**: For commands that dispatch background agents in parallel, embed the full workflow in the prompt. The `.claude/agents/` file remains the canonical reference — keep it in sync, but the dispatch prompt carries the executable instructions.
+Use explicit `subagent_type` when you know which agent to target. Use auto-delegation (omit `subagent_type`) when routing should be determined by description matching at runtime.
 
 ### Subagents cannot spawn subagents
 

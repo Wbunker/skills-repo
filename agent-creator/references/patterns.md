@@ -96,6 +96,8 @@ The `Agent(worker-a, worker-b)` tools syntax restricts which named agents this o
 
 The correct pattern when a **command** (not an agent) needs to dispatch work to multiple agents in parallel. Since subagents cannot spawn subagents, commands own all dispatch.
 
+> **Critical:** The orchestrating command must NOT use `context: fork`. Forked commands run as subagents and cannot use the Agent tool — any `Agent(...)` call will silently fail or error. The orchestrating command must run in the main conversation.
+
 ```markdown
 # In the command:
 
@@ -103,11 +105,15 @@ The correct pattern when a **command** (not an agent) needs to dispatch work to 
 
 For each batch of repos:
 1. Use TaskCreate to track each unit of work
-2. Dispatch via Agent tool (auto-delegation — no subagent_type):
+2. Dispatch via Agent tool with explicit subagent_type:
    ```
-   Agent(prompt="Analyze repo billing/<repo-name> and write pass-2 report")
+   Agent(
+     subagent_type="repo-analyzer",
+     prompt="Analyze repo billing/<repo-name> and write pass-2 report",
+     run_in_background=True
+   )
    ```
-   Pass `run_in_background: true` for parallel execution
+   Or use auto-delegation (omit subagent_type) when dynamic routing is preferred.
 3. Wait for all agents in the batch to complete
 4. Parse result lines (DONE/SKIP/ERROR)
 5. Use TaskUpdate to mark each complete
@@ -164,7 +170,7 @@ The full skill content is injected — not just made available for invocation. K
 
 | Mistake | Fix |
 |---------|-----|
-| `subagent_type: "my-agent"` | Remove `subagent_type`; rely on description matching |
+| Orchestrating command uses `context: fork` | Remove `context: fork` — forked commands run as subagents and cannot use the Agent tool; orchestrators must run in the main conversation |
 | Subagent tries to spawn subagents | Move all dispatch up to the command/orchestrator |
 | `Agent(worker)` in a dispatched agent | Only valid for main-thread agents (`claude --agent`) |
 | Background agent asks for permissions | Set `permissionMode: acceptEdits` or `bypassPermissions` |
