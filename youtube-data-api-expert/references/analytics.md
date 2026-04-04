@@ -291,6 +291,22 @@ The YouTube **Reporting** API (separate from Analytics API) is for bulk data dow
 | Naming convention | camelCase (`estimatedMinutesWatched`) | snake_case (`estimated_minutes_watched`) |
 | Use case | Dashboards, ad-hoc queries | Data warehousing, archiving |
 
+### Realtime Reports (Last 48 Hours)
+
+The Analytics API supports a `realtimeReport` resource for data within the last 48 hours — useful for monitoring a newly published video.
+
+```python
+response = analytics.reports().query(
+    ids='channel==MINE',
+    startDate='2daysAgo',
+    endDate='today',
+    metrics='views,estimatedMinutesWatched',
+    dimensions='day'
+).execute()
+```
+
+Note: Realtime data uses the same `reports.query` endpoint but with recent date ranges. True real-time (minute-by-minute) granularity is limited — `day` is the finest dimension available in the standard Analytics API.
+
 ---
 
 ## Data API vs Analytics API — What Each Can Answer
