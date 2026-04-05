@@ -224,7 +224,9 @@ Since subagents can't spawn subagents, commands that need parallel execution use
 
 `background: true` agents run concurrently and **cannot ask permission questions mid-run**. All required permissions must be pre-approved. Use `permissionMode: acceptEdits` or `bypassPermissions` when the agent needs to write files without prompting.
 
-See [references/patterns.md](references/patterns.md) for complete orchestration patterns.
+See [references/patterns.md](references/patterns.md) for complete orchestration patterns, including the complexity ladder (when to use agents vs. workflows vs. single calls) and the five workflow pattern names.
+
+When agents use tools, invest as much effort in tool design as in the system prompt. See [references/aci.md](references/aci.md) for format rules, poka-yoke patterns, and how to write effective tool descriptions.
 
 ## Writing effective descriptions
 

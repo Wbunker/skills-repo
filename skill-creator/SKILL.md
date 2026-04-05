@@ -44,6 +44,10 @@ Match the level of specificity to the task's fragility and variability:
 
 Think of Claude as exploring a path: a narrow bridge with cliffs needs specific guardrails (low freedom), while an open field allows many routes (high freedom).
 
+### Avoid Railroading Claude
+
+Because skills are reusable across many situations, being too prescriptive backfires. Give Claude the information it needs, but leave room to adapt to the specific situation. Overly rigid instructions produce brittle skills that fail on edge cases the author didn't anticipate.
+
 ### Anatomy of a Skill
 
 Every skill consists of a required SKILL.md file and optional bundled resources:
@@ -98,6 +102,56 @@ Files not intended to be loaded into context, but rather used within the output 
 - **Examples**: `assets/logo.png` for brand assets, `assets/slides.pptx` for PowerPoint templates, `assets/frontend-template/` for HTML/React boilerplate, `assets/font.ttf` for typography
 - **Use cases**: Templates, images, icons, boilerplate code, fonts, sample documents that get copied or modified
 - **Benefits**: Separates output resources from documentation, enables Claude to use files without loading them into context
+
+### Advanced Skill Patterns
+
+#### Session Setup with `config.json`
+
+Some skills need configuration from the user before they can run (e.g., which Slack channel to post to, which environment to target). Store this in a `config.json` in the skill directory. On first run, if the file is missing or incomplete, have Claude prompt the user using `AskUserQuestion`. On subsequent runs, read the config silently.
+
+```json
+// config.json (gitignored, user-specific)
+{
+  "slack_channel": "#engineering",
+  "environment": "staging"
+}
+```
+
+#### Persistent Memory with `${CLAUDE_PLUGIN_DATA}`
+
+Data stored in the skill directory is deleted when the skill is upgraded. For data that must survive upgrades (logs, learned preferences, historical records), use the `${CLAUDE_PLUGIN_DATA}` environment variable — a stable per-skill folder that persists across upgrades.
+
+```markdown
+# In SKILL.md:
+Store run history in ${CLAUDE_PLUGIN_DATA}/runs.log — one JSON line per execution.
+On each run, read the last 10 entries to understand what changed since the previous run.
+```
+
+#### On-Demand Hooks
+
+Skills can register hooks that activate only for the duration of the session when the skill is invoked. Use this for opinionated safety or constraint behaviors you don't want running all the time.
+
+```yaml
+# In SKILL.md frontmatter:
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: scripts/block-destructive.sh
+```
+
+Examples: `/careful` (blocks `rm -rf`, `DROP TABLE`, force-push during prod work), `/freeze` (blocks edits outside a specific directory during debugging)
+
+#### Composing Skills
+
+Skills can depend on other skills by referencing them by name in instructions. Claude will invoke the named skill if it is installed. Design for graceful degradation if the dependency isn't present.
+
+```markdown
+# In SKILL.md:
+To upload the generated CSV, invoke the `file-upload` skill.
+If unavailable, save the file locally and report the path.
+```
 
 #### What to Not Include in a Skill
 
@@ -216,6 +270,8 @@ Follow these steps in order, skipping only if there is a clear reason why they a
 
 Skip this step only when the skill's usage patterns are already clearly understood. It remains valuable even when working with an existing skill.
 
+Before diving into examples, consider what category of skill this is — see [references/skill-types.md](references/skill-types.md) for the 9 recurring categories and examples from each. Knowing the category shapes what resources to include and what patterns to follow.
+
 To create an effective skill, clearly understand concrete examples of how the skill will be used. This understanding can come from either direct user examples or generated examples that are validated with user feedback.
 
 For example, when building an image-editor skill, relevant questions include:
@@ -327,6 +383,16 @@ Do not include any other fields in YAML frontmatter. For skills intended as exec
 ##### Body
 
 Write instructions for using the skill and its bundled resources.
+
+**Build a Gotchas section.** This is the highest-signal content in any skill. Populate it from real failure points Claude encountered during use. A skill without a Gotchas section is incomplete — add one even if it starts with a single entry, and grow it over time.
+
+```markdown
+## Gotchas
+
+- Never call `X` before initializing `Y` — it silently corrupts state
+- The `--force` flag does not prompt for confirmation; always preview first
+- Timestamps from this API are UTC but labeled without timezone info
+```
 
 ### Step 5: Packaging a Skill
 

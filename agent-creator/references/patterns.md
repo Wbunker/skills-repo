@@ -1,5 +1,33 @@
 # Agent Patterns
 
+## Complexity Ladder — Start Simple
+
+Before building an agent, check whether a simpler solution works. Agents trade latency and cost for capability. Only move up when the simpler option demonstrably falls short.
+
+```
+Level 1: Single LLM call with retrieval + examples     → covers most tasks
+Level 2: Workflow (predefined code path, LLM at steps) → predictable, consistent
+Level 3: Agent (LLM drives its own process)            → open-ended, unpredictable steps
+```
+
+**Use an agent when:** the task is open-ended, the number of required steps can't be predicted, and you can't hardcode a fixed path. Agents require more testing and have higher error-compounding risk — use them only when the step count is genuinely unknowable in advance.
+
+## Workflow Patterns (for orchestration decisions)
+
+When designing how agents interact, these are the standard patterns. Name them in designs and comments so the intent is clear:
+
+| Pattern | Shape | When |
+|---------|-------|------|
+| **Prompt chaining** | A → B → C (sequential) | Task cleanly decomposes into fixed subtasks; trade latency for accuracy |
+| **Routing** | Input → classifier → specialist | Distinct input categories handled better separately |
+| **Parallelization** | Input → [A, B, C] → aggregate | Independent subtasks (sectioning) or multiple attempts (voting) |
+| **Orchestrator-workers** | Orchestrator → dynamic workers | Complex task where subtasks can't be predicted upfront |
+| **Evaluator-optimizer** | Generator ⟷ Evaluator (loop) | Clear eval criteria + iterative refinement improves output measurably |
+
+Most Claude Code agent work uses **parallelization** (Pattern 5: TaskCreate batches) or **orchestrator-workers** (Pattern 4: main-thread orchestrator). The others are useful when designing the agent's internal behavior.
+
+---
+
 ## Pattern 1: Simple auto-delegated agent
 
 The most common pattern. A command or conversation calls the Agent tool without `subagent_type`; Claude matches the prompt to the best available agent by description.
