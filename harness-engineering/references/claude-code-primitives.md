@@ -6,19 +6,20 @@ The harness patterns in this skill — guides, sensors, agent isolation, reasoni
 
 ## Table of Contents
 
-- [The Five Primitives](#the-five-primitives) — overview table
+- [The Six Primitives](#the-six-primitives) — overview table
 - [CLAUDE.md and Rules → Guides Layer](#claudemd-and-rules--guides-layer)
 - [Hooks → Sensors Layer](#hooks--sensors-layer) — PreToolUse, PostToolUse, Stop hooks; full detail in [hooks.md](hooks.md)
 - [Skills → Role Scoping, Reasoning Budgeting, Task Decomposition](#skills--role-scoping-reasoning-budgeting-task-decomposition)
 - [Subagents → Agent Isolation, Per-Role Configuration](#subagents--agent-isolation-per-role-configuration)
 - [Scheduled Tasks → Entropy Management](#scheduled-tasks--entropy-management)
+- [Channels → Event-Driven External Triggering](#channels--event-driven-external-triggering)
 - [Agent Teams → Parallel Evaluation and Investigation](#agent-teams--parallel-evaluation-and-investigation)
 - [Composing Primitives: Full Harness Example](#composing-primitives-full-harness-example)
 - [Quick Reference: Which Primitive for What](#quick-reference-which-primitive-for-what)
 
 ---
 
-## The Five Primitives
+## The Six Primitives
 
 | Primitive | Harness role | Reliability |
 |---|---|---|
@@ -27,6 +28,7 @@ The harness patterns in this skill — guides, sensors, agent isolation, reasoni
 | **Skills** | Task decomposition, role scoping, reasoning budgeting | Advisory or deterministic (user-controlled) |
 | **Subagents** | Agent isolation, tool allowlists, per-agent context | Controlled |
 | **Scheduled Tasks** | Entropy management, recurring background agents | Deterministic (when machine on) |
+| **Channels** | Event-driven external triggering (CI, monitoring, messaging) | Research preview |
 | **Agent Teams** | Multi-agent parallel work, competing hypotheses | Experimental |
 
 ---
@@ -343,6 +345,78 @@ For entropy agents that need to run even when your machine is off (nightly scans
 
 ---
 
+## Channels → Event-Driven External Triggering
+
+**Status: research preview.** Requires Claude Code 2.1.80+, Bun runtime.
+
+Source: Anthropic Channels documentation (March 2026).
+
+Channels turns Claude Code into a background agent that external systems can push events into — Telegram messages, Discord messages, CI webhooks, monitoring alerts. Claude maintains session context across those events. You don't need to be at the terminal.
+
+This is the event-driven complement to Scheduled Tasks. Scheduled tasks fire on a timer; channels fire when external events happen.
+
+### Setup (Telegram example)
+
+```
+1. Create bot via BotFather, get token
+2. /plugin install telegram@claude-plugins-official
+3. Configure with token, restart with --channels
+4. Send pairing code to your bot in Telegram
+```
+
+Discord follows the same pattern via the Discord Developer Portal. A `fakechat` demo mode lets you test the push/response loop locally before connecting external services.
+
+### Harness use cases
+
+**CI failure → immediate investigation:**
+```
+Wire a GitHub Actions webhook so Claude receives a push event when a build fails.
+Claude inspects the logs and reports findings to Telegram before you've checked your phone.
+```
+
+**Monitoring alert → triage:**
+```
+Datadog fires an alert → Channels event → Claude investigates → summary delivered to Telegram.
+No polling required. Claude is idle until the event arrives.
+```
+
+**Long-running task → async notification:**
+```
+Kick off a migration from your terminal, close your laptop.
+Claude messages you in Discord when it completes or when it needs a decision.
+```
+
+### Security model
+
+The plugin runs locally and polls the Bot API **outbound**. No inbound ports are opened. No public webhook endpoint. No reverse proxy. Authentication is pairing-code based — the bot is locked to your specific user ID. Anthropic has published prompt injection threat modeling in the docs; review before connecting sensitive repositories.
+
+Teams and Enterprise orgs must explicitly enable Channels — it is off by default.
+
+### Critical permission tradeoff
+
+Claude Code's permission system does not work remotely. Any operation requiring approval (file writes, shell commands) pauses the session and waits for physical terminal presence. The workaround is `--dangerously-skip-permissions`, which bypasses the approval gate entirely.
+
+| Mode | Remote autonomy | Oversight |
+|---|---|---|
+| Default | Blocks on every approval | Full human-in-the-loop |
+| `--dangerously-skip-permissions` | Fully autonomous | No per-operation approval |
+
+For unattended entropy agents (CI triage, nightly scans) where you've scoped the task tightly, `--dangerously-skip-permissions` is the practical choice. For anything touching production state, the default pause-and-wait model is safer even if inconvenient.
+
+### Channels vs. scheduled tasks vs. clawhip
+
+| | Channels | Scheduled tasks | clawhip |
+|---|---|---|---|
+| Trigger | External event push | Timer (cron) | Agent lifecycle events |
+| Direction | Bidirectional (you can reply) | Outbound notification only | Outbound notification only |
+| First-party | Yes | Yes | No (third-party) |
+| Requires machine | Yes (local plugin) | No (cloud option) | Yes (daemon) |
+| Best for | Interactive remote control, event-driven triage | Recurring maintenance, entropy agents | Multi-source lifecycle routing |
+
+Channels and clawhip are complementary: use Channels for bidirectional interaction and event-triggered tasks; use clawhip if you need to normalize events from multiple sources (Git, GitHub, tmux, OMC) into a typed routing layer.
+
+---
+
 ## Agent Teams → Parallel Evaluation and Investigation
 
 **Status: experimental.** Current limitations include no session resumption for in-process teammates, task status lag, and no nested teams. Evaluate before using in production harnesses.
@@ -420,7 +494,7 @@ CLAUDE.md (root)            → Golden principles, build commands, never list
   quality-grader/           → Weekly: update quality.md with domain grades
 ```
 
-Each primitive has one job. CLAUDE.md is advisory context; hooks are deterministic enforcement; skills scope capability per task; subagents isolate evaluation; scheduled tasks maintain quality over time.
+Each primitive has one job. CLAUDE.md is advisory context; hooks are deterministic enforcement; skills scope capability per task; subagents isolate evaluation; scheduled tasks maintain quality over time; channels handle event-driven triggering when external systems need to reach Claude.
 
 ---
 
@@ -435,6 +509,8 @@ Each primitive has one job. CLAUDE.md is advisory context; hooks are determinist
 | Prevent Claude from auto-triggering a workflow | Skill `disable-model-invocation: true` | Human controls timing |
 | Keep research out of main context | Skill `context: fork` | Isolated context window |
 | Recurring background maintenance | Scheduled task | Entropy agent mechanism |
+| React to CI failures, monitoring alerts, or messages | Channels | Event-driven trigger, no polling required |
+| Interactive remote control from phone | Channels | Bidirectional — you can reply via Telegram/Discord |
 | Isolated agent with custom role | Subagent | Own context, tool allowlist, custom prompt |
 | Parallel work requiring inter-agent communication | Agent team | Shared task list, direct messaging |
 | Parallel work without communication | `/batch` skill | Worktree isolation, built-in |
