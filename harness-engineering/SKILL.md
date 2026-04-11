@@ -42,6 +42,7 @@ Before designing a harness, understand why agents fail. See [failure-modes.md](r
 3. **Declaring victory too early** — agent sees progress, concludes project is done even with features unbuilt
 4. **Self-evaluation bias** — agents almost always approve their own output, even when broken
 5. **Pattern replication** — agents amplify existing bad patterns in the codebase; entropy compounds across sessions without a recurring cleanup process (OpenAI measured this at 20% of the working week before systematizing)
+6. **Over-delegation** — orchestrators split tasks that are not actually independent, paying for parallel context windows to produce an answer worse than a single session would have given. The fix is an explicit independence test before any fan-out. See [generator-evaluator-loop.md](references/generator-evaluator-loop.md) → "Decomposition and the Independence Test."
 
 The failure cycle: high-level prompt → agent attempts everything → context fills → wraps up early → session ends with no docs/git commit → next session starts blind → cycle repeats.
 
@@ -58,6 +59,19 @@ Every reliable harness addresses all five:
 | **Incremental verification** | Prevents "declaring victory" — test each unit as a real user would before marking complete |
 
 ## Choosing an Architecture
+
+**Minimal starting point — no framework required:**
+Before adopting any architecture, two Claude Code tabs already eliminate most of the sequential waiting that dominates single-session development. Assign each tab a session type:
+
+| Session Type | What it does |
+|---|---|
+| **Critique** | Argues against the plan before any building starts |
+| **Implementation** | Builds the feature |
+| **Simplification** | Reviews output for redundancy and unnecessary abstractions |
+| **Review** | Checks correctness, security, spec compliance |
+| **Testing/Docs** | Generates tests or documentation from the completed implementation |
+
+The bottleneck in agentic development is rarely writing code — it's reviewing it. Running implementation in one tab and simplification/review in a second tab, in parallel, costs nothing and requires no installation. Start here; add framework machinery when this ceiling is hit.
 
 **For single-agent, multi-session work** (most common starting point):
 Use the initializer + coding agent pattern. Simple, effective for focused builds.
@@ -94,11 +108,15 @@ For any new agentic project, establish these before the first coding session:
 
 ## Intent Before Planning
 
-Before the planner sees the prompt, resolve ambiguity through an explicit interview phase. An ambiguous prompt fed to a planner produces a spec built on inferred intent — errors that cascade through everything the generator builds.
+Before the planner sees the prompt, resolve two distinct things — in order:
 
-The sequence: **interview → plan approval → execute**. The planner gets a resolved spec; the generator gets an approved plan; execution begins with a concrete shared understanding of "done."
+1. **Intent clarification** — resolve *what to build*. An ambiguous prompt fed to a planner produces a spec built on inferred intent; those errors cascade through everything the generator builds. Sequence: **interview → plan approval → execute**. The planner gets a resolved spec; the generator gets an approved plan.
 
-See [generator-evaluator-loop.md](references/generator-evaluator-loop.md) → "Intent-First Routing."
+2. **Adversarial critique** — challenge *how to build it*. Before any planning begins, ask the agent to argue against your proposed approach. Effective prompts: "What are the three strongest reasons this architecture is wrong?" / "What would a senior engineer regret about this decision three years from now?" / "What am I assuming that might not be true?" This is upstream of intent clarification — it catches consequential architectural mistakes before they become specs. It takes five minutes and prevents the most expensive class of rework: building correctly what should not have been built that way.
+
+These are different steps. Intent clarification resolves scope; adversarial critique challenges approach. Both belong before planning.
+
+See [generator-evaluator-loop.md](references/generator-evaluator-loop.md) → "Intent-First Routing" (intent clarification) and "Adversarial verification" (post-generation adversarial evaluation).
 
 ## Controls: Guides and Sensors
 
@@ -129,7 +147,10 @@ Four benchmarked patterns that improved agent performance from 52.8% → 66.5% o
 - **Reasoning Budgeting** — high reasoning for planning and verification; moderate for implementation ("reasoning sandwich")
 
 Also covers Microsoft Magentic-One task/progress ledger validation and Meta-Harness automated optimization.
-See [middleware-patterns.md](references/middleware-patterns.md).
+
+**Advisor Tool** (Anthropic API beta, April 2026): a dynamic guidance layer where a cheap executor model (Haiku or Sonnet) calls Opus for strategic advice at decision points — all within a single API call. Haiku + Opus advisor achieved 19.7% → 41.2% on BrowseComp at 85% less cost than Sonnet alone. 2–3 advisor calls per task is the validated sweet spot; the executor decides timing. Conceptual foundation: arXiv:2510.02453 (Asawa et al.).
+
+See [middleware-patterns.md](references/middleware-patterns.md) → "Advisor Tool: Dynamic Guidance Layer."
 
 ## Spec-Driven Workflow Frameworks
 

@@ -18,6 +18,7 @@ Sources: LangChain "Improving Deep Agents with Harness Engineering" (2026), Micr
 - [Hash-Anchored Edits (Hashline)](#hash-anchored-edits-hashline) — 6.7% → 68.3% success rate
 - [Skill-Embedded MCPs](#skill-embedded-mcps)
 - [Schema Enforcement at Tool Boundaries](#schema-enforcement-at-tool-boundaries) — agentjson repair pipeline
+- [Advisor Tool: Dynamic Guidance Layer](#advisor-tool-dynamic-guidance-layer) — Anthropic API beta; Opus-as-advisor; cost-quality trade-offs; when to call
 
 ---
 
@@ -413,3 +414,68 @@ agentjson (sigridjineth/agentjson) benchmarks: strict JSON parsers 0/10 on a "LL
 - Reasonable size bounds (a tool result that's 500KB is probably wrong)
 
 This is the output-side equivalent of typed API clients: just as you validate inputs at the boundary (typed SDKs, OpenAPI), validate tool outputs at the boundary before they become LLM context. See [type-system-design.md](type-system-design.md) for the full boundary validation strategy.
+
+## Advisor Tool: Dynamic Guidance Layer
+
+Sources: Anthropic API documentation (April 2026, beta); arXiv:2510.02453 "How to Train Your Advisor" (Asawa et al., Feb 2026)
+
+**The conceptual shift:** All other middleware patterns in this file operate on static rules — hand-authored instructions injected at specific points. The Advisor Tool introduces a different layer: a stronger model generating dynamic, per-instance natural language guidance that steers a cheaper executor model. Instead of encoding what the agent should do in CLAUDE.md, you let Opus reason about the specific situation and tell the executor what to do next.
+
+This was formalized in the arXiv paper: train a lightweight open-weight model via RL to generate per-instance advice injected in-context before the target model's generation. Anthropic's production implementation replaces the trained advisor with Opus directly — same architectural pattern, no training infrastructure required.
+
+**How it works (Anthropic API beta):**
+
+```python
+tools = [{
+    "type": "advisor_20260301",
+    "name": "advisor",
+    "model": "claude-opus-4-6",
+    "max_uses": 3,                              # cap advisor calls per request
+    "caching": {"type": "ephemeral", "ttl": "1h"}  # for multi-turn conversations
+}]
+```
+
+Requires beta header: `anthropic-beta: advisor-tool-2026-03-01`
+
+The executor model (Haiku or Sonnet) runs the task end-to-end and calls the advisor like any other tool — the executor decides when advice is needed. On each advisor call:
+1. Executor emits a `server_tool_use` block with `name: "advisor"`
+2. Anthropic runs a separate Opus inference pass server-side
+3. Opus receives the full system prompt, tool definitions, conversation history, and all prior tool results
+4. Opus generates 400–700 tokens of advice (1,400–1,800 with extended thinking)
+5. Opus's thinking blocks are dropped; only the text advice returns as `advisor_tool_result`
+6. Executor resumes with that advice in context
+
+All of this happens within a single `/v1/messages` API call — no extra round trips from the client.
+
+**Supported model pairs (executor → advisor):**
+
+| Executor | Advisor | Primary use case |
+|---|---|---|
+| Claude Haiku 4.5 | Claude Opus 4.6 | Maximum cost reduction, longer tasks |
+| Claude Sonnet 4.6 | Claude Opus 4.6 | Quality improvement, cost-neutral to positive |
+| Claude Opus 4.6 | Claude Opus 4.6 | Extended thinking on decision points |
+
+**Pricing:** Executor tokens billed at executor model rates; advisor tokens billed at Opus rates. Top-level `usage` reports executor tokens; advisor tokens appear in `usage.iterations[].type == "advisor_message"`. No separate access fee for the tool itself.
+
+**Validated cost-quality results (Anthropic benchmarks):**
+- **Haiku + Opus advisor**: 19.7% → 41.2% on BrowseComp — 85% cheaper than Sonnet alone for comparable quality
+- **Sonnet + Opus advisor**: 2.7 point improvement on SWE-bench Multilingual, 11.9% cost reduction vs. Sonnet alone
+
+**When the executor should call the advisor:**
+- After initial exploratory reads, before substantive implementation begins
+- At a decision fork where multiple approaches are viable and the choice has downstream consequences
+- When the executor is stuck (same error repeated, approach not converging)
+- Before declaring the task complete — one advisor call to verify nothing was missed
+
+2–3 advisor calls per task is the validated sweet spot. The executor should not call the advisor on every turn; the value is in strategic decision points, not continuous supervision.
+
+**When not to use it:**
+- Single-turn Q&A where no multi-step reasoning is required
+- Tasks where every step needs top-tier reasoning (just use Opus directly)
+- Cost-sensitive bulk processing where the overhead isn't justified by quality requirements
+
+**The untrained advisor finding (from the arXiv paper):** Adding a naive, untrained advisor to a pipeline actively hurts performance — RuleArena accuracy dropped from 64.8% → 52.0% when an untrained advisor was introduced. The same principle applies to the production tool: calling the advisor at the wrong moments (too frequently, or on trivial decisions) will degrade output. The executor must be prompted to use the advisor judiciously, not by default.
+
+**Connection to the harness skill:** The Advisor Tool is a dynamic alternative to context injection middleware. Where context injection injects static pre-authored information, the advisor generates situation-specific guidance. For tasks with high variability in what "the right next step" looks like, the advisor will outperform static injection. For tasks with consistent, predictable decision points, static CLAUDE.md rules remain more efficient.
+
+**Docs:** `platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool`

@@ -10,6 +10,8 @@ Source: Anthropic engineering research (Mar 2026), inspired by GAN architecture
 - [The Self-Evaluation Bias Problem](#the-self-evaluation-bias-problem)
 - [Sprint Contracts](#sprint-contracts)
 - [Agent Isolation and Role Scoping](#agent-isolation-and-role-scoping)
+- [Decomposition and the Independence Test](#decomposition-and-the-independence-test) — over-delegation failure mode; dependency types; encoding in CLAUDE.md
+- [Research Agent Patterns](#research-agent-patterns) — structured findings format; citation drift + checker; cross-session lessons.md
 - [Intent-First Routing: Interview Before Planning](#intent-first-routing-interview-before-planning)
 - [Cross-Model Evaluation via the Codex Plugin](#cross-model-evaluation-via-the-codex-plugin) — adversarial-review, rescue, review-gate
 - [Mixed-Provider Teams](#mixed-provider-teams)
@@ -145,6 +147,110 @@ This enforces the role separation architecturally, not just through prompt instr
 **Deterministic handoffs over LLM routing**: agent-to-agent handoffs should be deterministic where possible. The planner completes its spec and hands off to the generator — not an LLM router that decides whether the spec is ready. The generator completes a sprint and explicitly hands to the evaluator. LLM-based routing introduces a decision point that can fail; explicit handoff at defined completion states does not.
 
 **Sprint contract as formal interface**: the sprint contract between generator and evaluator functions as the contract defined in arXiv 2603.25723 — explicit inputs, expected outputs, validation criteria, and permission boundaries agreed before execution begins. This makes the handoff inspectable and recoverable if either agent fails partway through.
+
+## Decomposition and the Independence Test
+
+Sources: Alireza Rezvani, production experience (April 2026); SEQCV (NeurIPS 2025); MAST failure taxonomy (arXiv:2503.13657); ACONIC (arXiv:2510.07772); TDAG (arXiv:2402.10178)
+
+The planner's most consequential decision is not *how many* tasks to create — it is *which tasks are actually independent*. Over-delegation (splitting tasks that share hidden dependencies) pays for parallel context windows and produces output worse than a single session would have given. Under-delegation misses parallelism that's genuinely available.
+
+The MAST failure taxonomy analyzed 1,600+ multi-agent execution traces and found **specification and design issues — primarily poor decomposition — account for ~42% of all failures**. Over-splitting and under-splitting are the dominant failure modes; the planner cannot fix these without modeling what the executor can actually do.
+
+**The basic independence test:** A sub-task is independent if its answer (or output) would not change based on the answer (or output) of any other sub-task in the same batch. Apply this to every proposed split before spawning workers.
+
+**What to check — four dependency types:**
+- **Data flow dependency** — Task B requires an artifact, file, or state produced by Task A (the most visible type)
+- **Shared conclusion dependency** — Task B's answer is partially determined by Task A's findings (e.g., "what are the honest limits of X" is not independent from "what is the current state of X" — limits are part of state)
+- **Shared state dependency** — Both tasks read from or write to the same external resource, making parallel runs produce conflicts or redundant work
+- **Hidden / latent dependency** — Tasks appear logically independent but LLM outputs carry correlations that propagate across the task graph; one worker's framing of a finding influences how another worker's finding is interpreted at synthesis time
+
+**The hard problem:** The basic independence test is correct in theory but insufficient in practice. Ground-truth answers are not available at decomposition time — you cannot verify that Task B's answer is truly unaffected by Task A's until both have run. SEQCV (NeurIPS 2025) found that hidden latent correlations in LLM outputs create error cascades that pure logical independence checking cannot catch. Their finding: **sequential execution with consistency checking between steps outperforms pure parallel decomposition** despite appearing less efficient. Real independence is rare; most multi-step work has semi-dependencies that only manifest at execution time.
+
+**Practical implication:** Use parallelism for tasks that are structurally independent — different files, different domains, no shared data flow — and treat synthesis as the error-recovery step where latent correlations surface. For tasks where the conclusions of one constrain the interpretation of another, run sequentially and condition later tasks on earlier results.
+
+**What to do when tasks collapse:** If the independence test reveals that two proposed sub-tasks are not independent, merge them. Fewer workers running genuinely independent tasks outperforms more workers running entangled ones. In production use, enforcing this test reduced average worker count per query while increasing output quality.
+
+**Granularity calibration:** The planner must model what the executor can actually do. Tasks split "too granularly" force sub-decisions into the executor that require orchestrator-level context; tasks split "too broadly" leave the executor stuck. Neither is detectable from the prompt alone — it requires knowing the executor's tool access, context budget, and typical capability boundary.
+
+**Where decomposition quality lives:** The interesting engineering work in a multi-agent system is not in the orchestrator implementation, the subagent definitions, or the MCP wiring. It is in the decomposition rules. A well-architected orchestrator with bad decomposition rules produces worse output than a thoughtful single-session query.
+
+**Encoding this in CLAUDE.md:**
+```markdown
+## Decomposition Rules
+- Default to plan mode on any query that contains more than one question
+- Decompose only when sub-questions are genuinely independent
+- A sub-question is independent if its answer would not change based on the answer to another sub-question in the same query
+- Check for: data flow dependencies, shared conclusion dependencies, shared state, and latent correlations at synthesis
+- Fan out to workers via the Task tool, never inline
+- Workers return structured findings, not transcripts
+- When in doubt, merge and run sequentially rather than split and run in parallel
+```
+
+See [Research Agent Patterns](#research-agent-patterns) for the full research-specific pattern, and [Intent-First Routing](#intent-first-routing-interview-before-planning) for resolving intent ambiguity before decomposition begins.
+
+## Research Agent Patterns
+
+Source: Alireza Rezvani, production experience (April 2026)
+
+Patterns that apply specifically to orchestrator-worker research systems (information gathering, synthesis, citation-backed output). Complement the general three-agent architecture.
+
+### Structured Findings Format
+
+Workers should return structured findings, not reasoning traces or full session transcripts. The orchestrator synthesizes findings; it does not re-read investigation logs.
+
+```markdown
+- Claim: [what was found]
+- Source URL: [verified URL]
+- Supporting quote or paraphrase: [exact text from source]
+- Confidence: high / medium / low
+```
+
+"High" confidence means the claim is directly stated in the source. "Medium" means paraphrased from clear supporting content. "Low" means inferred or from a secondary source. The orchestrator uses confidence levels to weight synthesis and flag uncertain claims.
+
+### Citation Drift and the Citation-Checker Subagent
+
+**Citation drift** is a failure mode distinct from hallucination: the worker read something related on a page, paraphrased it, and the paraphrase became a claim the source does not actually support if you grep-match the wording. The worker was not fabricating — it was summarizing imprecisely. AutoResearch-style iterative loops do not re-verify their own quotes against source text.
+
+The fix is a dedicated **citation-checker subagent** — a final-pass verifier that runs after all workers complete, before synthesis:
+
+```markdown
+---
+name: citation-checker
+description: Verifies that every cited claim appears in its cited source.
+tools: Read, WebFetch
+---
+
+For each claim-source pair in the worker findings:
+1. Fetch the source URL
+2. Search the page text for the cited claim or supporting paraphrase
+3. Flag any claim where the source does not contain what the worker reported
+
+Return: list of verified claims, list of flagged claims with reason.
+Flagged claims are returned to the orchestrator to re-verify or downgrade to "unverified."
+```
+
+The citation-checker is not clever — fetch, search, flag. But citation drift is common enough in research loops that the extra pass earns its cost.
+
+**Important scope**: the citation-checker verifies that a claim *exists* on a page — it does not assess whether the page is a credible source. Source credibility remains a human judgment.
+
+### Cross-Session Research Memory (lessons.md)
+
+Subagents are fire-and-forget. Without a cross-session memory mechanism, a research orchestrator rediscovers the same sources from scratch on every query. On recurring research domains, this is expensive and wasteful.
+
+A lightweight fix: a flat `lessons.md` file the orchestrator reads on startup, containing prior queries, their decompositions, and notes on sources that kept appearing.
+
+```markdown
+## Past Queries and Decompositions
+- [2026-04-01] "State of MCP server tooling" → split into: (1) current state + limits [merged], (2) serious players, (3) changes last 6 months
+  - Sources that kept surfacing: [list]
+
+## Recurring Sources by Domain
+- MCP tooling: [source A], [source B]
+```
+
+This is not memory in the auto-memory sense — it is a research log the orchestrator uses to avoid cold-starts. Update it at the end of each query session. Keep it flat and human-readable; it is also useful for reviewing what the agent has been investigating.
+
+**Distinction from CLAUDE.md**: CLAUDE.md encodes rules and constraints (what the orchestrator *must* do). lessons.md encodes accumulated research context (what the orchestrator *knows*). They serve different purposes and should not be merged.
 
 ## Intent-First Routing: Interview Before Planning
 
