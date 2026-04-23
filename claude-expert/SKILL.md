@@ -29,6 +29,7 @@ Reference hub for all Claude products and APIs. Use the decision matrix below to
 | Connect Claude to external tools/data | MCP | [integrations.md](references/integrations.md) |
 | Slack/GitHub/GitLab CI integration | Platform integrations | [integrations.md](references/integrations.md) |
 | Choose the right model | Model families | [models.md](references/models.md) |
+| Upgrade from Opus 4.6 to 4.7 | Migration guide | [opus-47-migration.md](references/opus-47-migration.md) |
 | Process large volumes cheaply | Batch API (50% discount) | [api.md](references/api.md) |
 | Reduce cost on repeated large contexts | Prompt Caching (~90% on hits) | [api.md](references/api.md) |
 
@@ -107,6 +108,7 @@ MCP (Model Context Protocol) is the open standard for connecting AI applications
 | [api.md](references/api.md) | Messages API, SDKs, tool use, streaming, caching, batch, Files API |
 | [claude-code.md](references/claude-code.md) | CLI flags, IDE extensions, hooks, settings, subagents, MCP config, built-in slash commands (`/review`, `/ultrareview`, `/ultraplan`, etc.), prompting tips (`ultrathink`, evidence rule) |
 | [models.md](references/models.md) | Opus/Sonnet/Haiku families, pricing, tradeoffs, selection guide |
+| [opus-47-migration.md](references/opus-47-migration.md) | Breaking API changes (sampling params, prefill, thinking budgets, tokenizer), new features (xhigh, task budgets, high-res images), the two prompt patterns that break, prompting strategy |
 | [integrations.md](references/integrations.md) | Slack, GitHub Actions, MCP protocol, MCP registry |
 | [agent-sdk.md](references/agent-sdk.md) | `query()` API, tools, permission modes, hooks, subagents |
 | [agent-sdk-options.md](references/agent-sdk-options.md) | Full `ClaudeAgentOptions` reference (Python dataclass + TS equivalents) |

@@ -21,18 +21,18 @@
 
 | Feature | Opus 4.7 | Sonnet 4.6 | Haiku 4.5 |
 |---|---|---|---|
-| Extended thinking | Adaptive | Yes | Yes |
+| Thinking | Adaptive only (budget_tokens removed) | Extended or Adaptive | Extended or Adaptive |
 | Context window | 1M | 1M | 200k |
 | Tool use | Yes | Yes | Yes |
 | Vision | Yes (3.75MP) | Yes | Yes |
 | Prompt caching | Yes | Yes | Yes |
 | Batch API | Yes | Yes | Yes |
 
-**Adaptive thinking** (Opus 4.7, Sonnet 4.6): model decides whether to think based on task complexity. **Extended thinking** (all three): you specify `budget_tokens` explicitly.
+**Adaptive thinking** (Opus 4.7): model decides whether to think based on task complexity; off by default — set `thinking: {type: "adaptive"}` explicitly to enable. **Extended thinking** (Sonnet 4.6, Haiku 4.5): specify `budget_tokens` explicitly — this API was removed on Opus 4.7.
 
 **Opus 4.7 vision**: accepts images up to 2,576px on the long edge (~3.75 megapixels) — 3x the resolution of previous Claude models. ScreenSpot-Pro accuracy: 87.6% (high-res) vs 57.7% for Opus 4.6 (low-res). Unlocks dense screenshot reading, complex diagram extraction, and pixel-perfect UI reference work.
 
-**Opus 4.7 instruction following**: takes prompts strictly and literally. Previous models would sometimes skip steps, reorder instructions, or make small judgment calls. If you have production prompts or agent harnesses written for Opus 4.6, **expect to re-tune them** — the stricter compliance can surface latent ambiguities in your prompts.
+**Opus 4.7 instruction following**: takes prompts strictly and literally. Existing Opus 4.6 prompts have strong out-of-the-box performance on 4.7. Two narrow patterns need fixing: (1) implicit tool calls using soft verbs ("check", "consider") — make them explicit with MUST + named tool; (2) rules with implicit scope/exceptions ("once per conversation") — write the scope and exceptions out. See [opus-47-migration.md](opus-47-migration.md) for the full guide.
 
 **Opus 4.7 usage cost**: consumes Claude.ai usage limits ~2x faster than Sonnet 4.6. Factor this into plan selection for high-volume or always-on workflows.
 
