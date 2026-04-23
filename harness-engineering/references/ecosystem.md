@@ -1,6 +1,6 @@
 # Harness Engineering Ecosystem
 
-Sources: LangGraph, Microsoft Agent Framework, OpenClaw, DeepSeek-V3.2, Moonshot Kimi K2, ACE (arXiv 2510.04618)
+Sources: LangGraph, Microsoft Agent Framework, OpenClaw, OpenHarness, DeepSeek-V3.2, Moonshot Kimi K2, ACE (arXiv 2510.04618)
 
 ## Table of Contents
 
@@ -13,6 +13,7 @@ Sources: LangGraph, Microsoft Agent Framework, OpenClaw, DeepSeek-V3.2, Moonshot
 - [clawhip](#clawhip) — daemon-first event router; typed session.* events
 - [Chinese Lab Research](#chinese-lab-research-whats-actionable) — DeepSeek context strategies; Kimi K2 interleaved thinking; ACE evolving playbooks
 - [Spec-Driven Workflow Frameworks](#spec-driven-workflow-frameworks) — comparison table
+- [OpenHarness](#openharness) — HKU Data Science Lab; full 6-component harness; Claude Code-compatible
 - [Choosing Between Approaches](#choosing-between-approaches) — decision tree
 
 ---
@@ -61,6 +62,7 @@ A good abstraction reduces both code *and* cognitive load. An abstraction that r
 | **Microsoft Agent Framework** | Microsoft (AutoGen + Semantic Kernel) | Enterprise production, dynamic multi-agent orchestration | Azure-native, enterprise deployments |
 | **Qwen-Agent** | Alibaba | Open-source, MCP + function calling, code interpreter | Cost-sensitive deployments, open-weight models |
 | **OpenClaw** | Steinberger / OpenAI Foundation | Consumer-grade, messaging app integration, SKILL.md system | Personal agents, multi-platform routing |
+| **OpenHarness** | HKU Data Science Lab | Full 6-component harness, CLAUDE.md/MEMORY.md conventions, 43 built-in tools | Claude Code-compatible, multi-provider, reference harness |
 
 ---
 
@@ -168,6 +170,50 @@ See [guides-and-sensors.md](guides-and-sensors.md) → "Typed Agent Lifecycle Ev
 
 ---
 
+## OpenHarness
+
+Source: HKU Data Science Lab (github.com/HKUDS/OpenHarness, April 2026); Joe Njenga, "Agent Harness: The Buzz Everyone's Now Using (But Only Pros Understand)" (Medium, Apr 2026)
+
+Open-source Python harness from the HKU Data Science Lab. Released April 2026; over 10K GitHub stars and ~2K forks within weeks of release. Supports Anthropic, OpenAI, and GitHub Copilot API keys.
+
+**What it is**: a working reference implementation of the full six-component harness definition. Each component maps to a concrete module:
+
+| Harness component | OpenHarness implementation |
+|---|---|
+| **Instructions** | `CLAUDE.md` discovered and injected at runtime — write rules once, agent reads them every run |
+| **Memory** | `MEMORY.md` persistent storage + session resume — context carried across sessions |
+| **Tools** | 43 built-in tools: file I/O, shell, web search, Jupyter notebooks, MCP integrations |
+| **Guardrails** | Multi-level permission system via `settings.json` — `path_rules` + `denied_commands` |
+| **Verification** | `PreToolUse` and `PostToolUse` hooks fire before and after every tool call |
+| **Recovery** | Agent loop with API retries, exponential backoff, parallel tool execution, token tracking |
+
+The core agent loop:
+
+```python
+while True:
+    response = await api.stream(messages, tools)
+    if response.stop_reason != "tool_use":
+        break  # model is done
+    for tool_call in response.tool_uses:
+        # permission check → PreToolUse hook → execute → PostToolUse hook → result
+        result = await harness.execute_tool(tool_call)
+        messages.append(tool_results)
+    # loop continues — model sees results, decides next action
+```
+
+The loop makes the division of responsibility explicit: the model decides *what* to do next; the harness handles *how* — safely, with full control and observability.
+
+**Install**:
+
+```bash
+pip install openharness-ai
+# or one-click PowerShell installer for Windows
+```
+
+**When to use**: when you want a pre-built, Claude Code-compatible harness that explicitly implements all six harness components out of the box and runs against multiple providers. The file-based instruction and memory system (`CLAUDE.md` / `MEMORY.md`) makes it directly compatible with Claude Code conventions in this skill.
+
+---
+
 ## Chinese Lab Research: What's Actionable
 
 ### DeepSeek-V3.2: Context Management at Scale
@@ -244,3 +290,4 @@ For most practitioners, the decision tree is:
 10. **Long tool chains (200+ calls)** → Evaluate Kimi K2 or DeepSeek-V3.2 as the model; may reduce need for session decomposition
 11. **Long-running project (weeks+), want improving context** → Implement ACE-style playbook evolution on top of progress tracking
 12. **Multi-platform personal agent** → OpenClaw with SOUL.md per agent
+13. **Want a full six-component harness, multi-provider, Claude Code-compatible file conventions** → OpenHarness
