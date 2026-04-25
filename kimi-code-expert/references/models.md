@@ -97,8 +97,27 @@ Prices exclude taxes. File upload/storage is temporarily free.
 
 ## K2.6 Benchmark Highlights (vs closed frontier, April 2026)
 
-**Wins or ties:** SWE-Bench Pro, Terminal-Bench 2.0, DeepSearchQA (F1 +14 pts over GPT-5.4), BrowseComp with agent swarm, HLE with tools.
+**Architecture:** 1 trillion parameter Mixture-of-Experts (MoE), 32B active parameters, 256K context window, native multimodal (text + images).
 
-**Behind closed frontier:** MATH Olympiad, GPQA reasoning, BabyVision (−12 pts vs Gemini 3.1 Pro), Toolathlon (50.0 vs GPT-5.4's 54.6), APEX-Agents.
+| Benchmark | K2.6 | GPT-5.4 | Opus 4.6 | Notes |
+|---|---|---|---|---|
+| HLE with Tools | **54.0** | 52.1 | 53.0 | Complex reasoning + tool use |
+| SWE-Bench Pro | **58.6** | 57.7 | 53.4 | Real-world software engineering |
+| SWE-Bench Multilingual | 76.7 | — | **77.8** | Python, JS, Go, etc. |
+| Terminal-Bench 2.0 | **66.7** | 65.4 | 65.4 | Terminal-based coding (core Claude Code use) |
+| Toolathlon | 50.0 | **54.6** | 47.2 | Tool calling reliability |
+| DeepSearchQA (F1) | **+14 pts** over GPT-5.4 | baseline | — | Research/web search |
+| MATH Olympiad | behind | — | — | Hard reasoning |
+| BabyVision | −12 pts vs Gemini 3.1 Pro | — | — | Vision gap |
 
-Agent Swarm scales to 300 concurrent sub-agents. Demonstrated 13-hour autonomous coding sessions.
+**Behind closed frontier:** MATH Olympiad, GPQA reasoning, BabyVision, APEX-Agents, Toolathlon vs GPT-5.4.
+
+Agent Swarm scales to 300 concurrent sub-agents executing up to 4,000 coordinated steps simultaneously. Demonstrated 13-hour autonomous coding sessions.
+
+**K2.5 Agent Swarm (for comparison):** Up to 100 sub-agents, 1,500 coordinated steps. Delivers ~4.5x speedup over single-agent execution on parallel-decomposable tasks.
+
+**K2.6 improvements over K2.5:**
+- **Reasoning depth:** Extends reasoning chain before committing — reduces shallow heuristic collapse on multi-step problems
+- **Agent planning:** Orchestrator routing more reliably keeps swarm active instead of falling back to single-agent mode
+- **Full-stack code quality:** Explicit frontend pattern training; React component structure notably improved
+- **Complex debugging:** Dedicated debugging sub-agent routing isolates blast radius before attempting cross-file fixes

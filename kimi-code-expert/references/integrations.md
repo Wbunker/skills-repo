@@ -41,6 +41,8 @@ client = OpenAI(
 
 ## Claude Code / Cline / RooCode Integration
 
+### Option A: Direct API (no Ollama)
+
 Use Kimi as a drop-in replacement backend in OpenAI-compatible IDE tools.
 
 **Configuration pattern:**
@@ -54,6 +56,36 @@ Use Kimi as a drop-in replacement backend in OpenAI-compatible IDE tools.
 ```
 
 Refer to `platform.kimi.ai/docs/guide/agent-support.md` for tool-specific setup instructions for Claude Code, Cline, RooCode, and OpenCode.
+
+### Option B: Ollama Cloud proxy (recommended if you already use Ollama)
+
+Ollama Cloud ($20/month Pro) provides cloud-hosted inference for Kimi K2.6 via an Anthropic-compatible API. `ollama launch claude` wires up `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` automatically — no manual env var setup.
+
+**Setup:**
+```bash
+# 1. Requires Ollama v0.15+
+ollama --version
+
+# 2. Sign in / create account (links to ollama.com/pricing for Pro)
+ollama login
+
+# 3. Pull the cloud model (lightweight — inference runs remotely)
+ollama pull kimi-k2.6:cloud
+
+# 4. Launch Claude Code pointed at Kimi K2.6
+ollama launch claude --model kimi-k2.6:cloud
+```
+
+**Verify inside Claude Code:**
+```
+/status
+# Should show:
+# Model: kimi-k2.6:cloud
+# Auth token: ANTHROPIC_AUTH_TOKEN
+# Anthropic base URL: http://localhost:11434
+```
+
+**Cost comparison:** Ollama Cloud Pro $20/month vs Claude Max $100/month vs Claude Max Ultimate $200/month. Suitable for prototyping and experimental projects where per-token API cost and data privacy constraints don't apply.
 
 ---
 
