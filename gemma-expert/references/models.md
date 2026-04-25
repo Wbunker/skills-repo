@@ -29,6 +29,13 @@ Gemma 4 uses Mixture-of-Experts (MoE) for the larger variants. MoE activates onl
 | LMArena | ~1441 | Human preference |
 | MRCR v2 8-needle 128K | 44.1% | Long-context retrieval |
 
+**Gemma 4 31B (Dense) — additional benchmark:**
+
+| Benchmark | Score | Notes |
+|-----------|-------|-------|
+| LiveCodeBench v6 | 80.0% | Real-world code generation on actual GitHub issues |
+| Codeforces ELO | 2150 | Competitive programming ceiling for Gemma 4 |
+
 ---
 
 ## Gemma 3 (2025)
