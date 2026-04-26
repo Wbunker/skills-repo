@@ -64,29 +64,11 @@ For CLI commands, see [cloudwatch-cli.md](cloudwatch-cli.md).
 | **Retention policy** | Per-log-group setting: 1 day to 10 years, or never expire |
 | **Metric filter** | Pattern that matches log events and increments a CloudWatch metric (e.g., count ERROR occurrences) |
 | **Subscription filter** | Real-time stream of filtered log events delivered to Kinesis, Kinesis Firehose, or Lambda |
-| **Logs Insights** | Interactive query engine for log data; purpose-built query language |
+| **Logs Insights** | Interactive query engine; supports CWLI, OpenSearch PPL, and OpenSearch SQL; pay per byte scanned. See [cloudwatch-logs-insights-capabilities.md](cloudwatch-logs-insights-capabilities.md) for full reference. |
 | **Log class** | **Standard** (full features, real-time) or **Infrequent Access** (lower cost, subset of features, no live tail) |
 | **Field index** | Index on specific log fields to speed up Logs Insights queries by reducing data scanned |
 | **Live Tail** | Stream new log events in near-real-time in the console; filter by pattern; for active troubleshooting |
 | **Data protection policy** | Automatically detect and mask sensitive data (PII, credentials) in log events |
-
-### Logs Insights Query Syntax
-
-```
-# Basic field filtering and sorting
-fields @timestamp, @message
-| filter @message like /ERROR/
-| sort @timestamp desc
-| limit 20
-
-# Aggregate stats
-stats count() as errorCount by bin(5m)
-| sort errorCount desc
-
-# Parse structured logs
-parse @message "* * *" as requestId, status, latency
-| stats avg(latency), max(latency) by status
-```
 
 ### Subscription Filter Destinations
 
