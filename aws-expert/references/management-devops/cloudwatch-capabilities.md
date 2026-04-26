@@ -62,7 +62,7 @@ For CLI commands, see [cloudwatch-cli.md](cloudwatch-cli.md).
 | **Log stream** | Ordered sequence of log events from a single source (e.g., one EC2 instance, one Lambda invocation sequence) |
 | **Log event** | A record with a timestamp and message |
 | **Retention policy** | Per-log-group setting: 1 day to 10 years, or never expire |
-| **Metric filter** | Pattern that matches log events and increments a CloudWatch metric (e.g., count ERROR occurrences) |
+| **Metric filter** | Pattern that matches log events and increments a CloudWatch metric; forward-looking only; max 100/log group. See [cloudwatch-metric-filters-capabilities.md](cloudwatch-metric-filters-capabilities.md) for full reference. |
 | **Subscription filter** | Real-time stream of filtered log events delivered to Kinesis, Kinesis Firehose, or Lambda |
 | **Logs Insights** | Interactive query engine; supports CWLI, OpenSearch PPL, and OpenSearch SQL; pay per byte scanned. See [cloudwatch-logs-insights-capabilities.md](cloudwatch-logs-insights-capabilities.md) for full reference. |
 | **Log class** | **Standard** (full features, real-time) or **Infrequent Access** (lower cost, subset of features, no live tail) |
