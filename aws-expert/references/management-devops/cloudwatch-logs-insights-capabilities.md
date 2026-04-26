@@ -594,12 +594,13 @@ Use cases: detect regressions after a deployment, find new error patterns, compa
 
 ## Embedded Metrics Format (EMF)
 
-Lambda and other services can publish structured metric data inside log events using the EMF JSON format. CloudWatch auto-extracts these as real CloudWatch metrics — zero separate API calls needed.
+EMF lets applications embed metric definitions in log events; CloudWatch auto-extracts them as real metrics with no separate API call. Properties that are NOT metrics stay in the log and are queryable here. See [cloudwatch-emf-capabilities.md](cloudwatch-emf-capabilities.md) for full reference.
 
-Logs Insights can query the raw EMF fields directly:
 ```
-filter _aws.CloudWatchMetrics[0].Namespace = "MyApp"
-| stats avg(Latency), pct(Latency, 99) by ServiceName
+# Query EMF property context alongside extracted metrics
+filter Service = "OrderService" and ProcessingLatency > 500
+| fields RequestId, UserId, OrderId, ProcessingLatency, @timestamp
+| sort ProcessingLatency desc
 ```
 
 ---
