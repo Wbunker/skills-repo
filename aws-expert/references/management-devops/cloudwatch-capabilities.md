@@ -34,7 +34,7 @@ For CLI commands, see [cloudwatch-cli.md](cloudwatch-cli.md).
 | Feature | Description |
 |---|---|
 | **Application Signals** | Automatic instrumentation for latency, error rate, and request rate KPIs; SLO tracking |
-| **CloudWatch Synthetics** | Canaries (Node.js or Python scripts) that simulate user flows on a schedule; detect availability issues before users do |
+| **CloudWatch Synthetics** | Canaries (Node.js or Python scripts) that simulate user flows on a schedule; detect availability issues before users do. See [cloudwatch-synthetics-capabilities.md](cloudwatch-synthetics-capabilities.md) for full reference. |
 | **CloudWatch RUM** | Real User Monitoring; JavaScript snippet injects telemetry into web pages; captures page load times, JS errors, HTTP errors |
 | **Evidently** | Feature flags and A/B testing; control feature rollout percentages; run experiments with statistical analysis |
 | **Contributor Insights** | Analyze log data to identify top-N contributors to a metric (e.g., top IPs generating 5xx errors) |
