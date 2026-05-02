@@ -1,5 +1,6 @@
 # AWS CloudWatch — Capabilities Reference
 For CLI commands, see [cloudwatch-cli.md](cloudwatch-cli.md).
+For full alarm coverage (all types, actions, composite, suppressor, mute rules, SLOs, pricing), see [cloudwatch-alarms-capabilities.md](cloudwatch-alarms-capabilities.md).
 
 ## Amazon CloudWatch
 
@@ -22,12 +23,16 @@ For CLI commands, see [cloudwatch-cli.md](cloudwatch-cli.md).
 
 ### Alarm Types
 
+See [cloudwatch-alarms-capabilities.md](cloudwatch-alarms-capabilities.md) for full alarm reference.
+
 | Type | Description |
 |---|---|
 | **Static threshold** | Alarm when metric is above/below a fixed value for N out of M data points |
-| **Anomaly detection** | Alarm when metric deviates from the expected band by a configurable number of standard deviations |
-| **Composite alarm** | Evaluates multiple alarms with Boolean logic; a single pane for complex alert conditions |
-| **Metric math alarm** | Alarm on the result of a metric expression across multiple metrics |
+| **Anomaly detection** | ML-based; alarm when metric deviates from expected band by N standard deviations |
+| **Composite alarm** | Evaluates multiple alarms with Boolean logic (`AND`/`OR`/`AT_LEAST`); reduces noise |
+| **Metric math alarm** | Alarm on the result of an expression across multiple metrics |
+| **Metrics Insights** | SQL-based; dynamically tracks new resources matching a query |
+| **PromQL** | Monitors metrics ingested via CloudWatch OTLP endpoint |
 
 ### Application Performance Monitoring
 
@@ -44,9 +49,14 @@ For CLI commands, see [cloudwatch-cli.md](cloudwatch-cli.md).
 ### Alarm Actions
 
 - **SNS notification** — email, SMS, webhook, Lambda, SQS
-- **Auto Scaling** — scale out or in
-- **EC2 actions** — stop, terminate, reboot, recover
+- **Lambda** — invoke directly (contributor-level for Metrics Insights/PromQL alarms)
+- **Auto Scaling** — scale out or in (metric alarms only; re-fires every minute while in ALARM)
+- **EC2 actions** — stop, terminate, reboot, recover (metric alarms only)
 - **Systems Manager OpsItem** — create an OpsItem for investigation
+- **Incident Manager** — trigger a response plan
+- **CloudWatch Investigations (Amazon Q)** — AI-powered incident investigation
+
+See [cloudwatch-alarms-capabilities.md](cloudwatch-alarms-capabilities.md) for full action support matrix, mute rules, and suppressor alarms.
 
 ---
 
