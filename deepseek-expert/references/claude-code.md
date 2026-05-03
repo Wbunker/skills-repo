@@ -6,6 +6,7 @@ Claude Code uses the Anthropic SDK internally. DeepSeek exposes an Anthropic-com
 - [Quick Setup](#quick-setup)
 - [All Environment Variables](#all-environment-variables)
 - [Switching Between DeepSeek and Anthropic](#switching-between-deepseek-and-anthropic)
+- [Primitives Compatibility: Skills, Commands, Agents, Hooks](#primitives-compatibility-skills-commands-agents-hooks)
 - [What Works / What Doesn't](#what-works--what-doesnt)
 - [Gotchas](#gotchas)
 
@@ -93,6 +94,82 @@ function use-anthropic() {
   echo "Claude Code → Anthropic (Claude)"
 }
 ```
+
+---
+
+## Primitives Compatibility: Skills, Commands, Agents, Hooks
+
+### Skills (`SKILL.md` files) — No changes needed
+
+Skills are markdown loaded into context. DeepSeek reads and follows them identically to Claude. No Anthropic-specific features are required. All existing skills work as-is.
+
+### Commands — No changes needed (unless `model:` is set)
+
+Command frontmatter supports a `model:` field. If a command specifies a Claude model name, DeepSeek **silently remaps it to `deepseek-v4-flash`** with no error. Either remove the `model:` field (env vars control the model globally) or use a DeepSeek model name:
+
+```yaml
+---
+description: My command
+model: deepseek-v4-pro     # ✓ explicit DeepSeek model
+# model: claude-opus-4-6  # ✗ silently becomes deepseek-v4-flash
+---
+```
+
+### Agents (`.claude/agents/*.md`) — Safe if `model:` is correct
+
+Agent instructions are text — fully portable. Tool use in agents works. The only risk is the `model:` frontmatter field:
+
+```yaml
+---
+name: my-agent
+description: Does X
+model: deepseek-v4-pro        # ✓ use this
+# model: claude-sonnet-4-5   # ✗ silently remaps to deepseek-v4-flash
+# model: sonnet               # ✗ shorthand also remaps silently
+# model: inherit              # ✓ safe — inherits from parent/env vars
+---
+```
+
+**Model name remapping table** — what DeepSeek does with Claude names:
+
+| Value in `model:` field | What DeepSeek actually uses |
+|------------------------|----------------------------|
+| `deepseek-v4-pro` | deepseek-v4-pro ✓ |
+| `deepseek-v4-flash` | deepseek-v4-flash ✓ |
+| `inherit` | Parent model (from env vars) ✓ |
+| `claude-opus-4-6` | deepseek-v4-flash ⚠ silent remap |
+| `claude-sonnet-4-5` | deepseek-v4-flash ⚠ silent remap |
+| `claude-haiku-4-5` | deepseek-v4-flash ⚠ silent remap |
+| `sonnet` | deepseek-v4-flash ⚠ silent remap |
+| `haiku` | deepseek-v4-flash ⚠ silent remap |
+| `opus` | deepseek-v4-flash ⚠ silent remap |
+
+**Rule:** When running under DeepSeek, any unrecognized model name silently becomes `deepseek-v4-flash`. There is no error or warning. Audit agent files for `model:` fields before switching.
+
+### Hooks — No changes needed
+
+Hooks execute as shell commands on the Claude Code harness — they never touch the model API. Fully portable across any backend.
+
+### MCP tools — No changes needed
+
+Claude Code dispatches MCP tools as regular function calls. DeepSeek handles these correctly. What DeepSeek doesn't support is the native Anthropic API `mcp_servers` parameter — but Claude Code doesn't use that path. Your existing MCP tool integrations (browser automation, etc.) work unchanged.
+
+### Compatibility summary
+
+| Primitive | Compatible? | Action |
+|-----------|------------|--------|
+| Skills / SKILL.md | ✅ Yes | None |
+| Commands (no `model:` field) | ✅ Yes | None |
+| Commands (with `model: claude-*`) | ⚠️ Silent remap | Use DeepSeek name or remove field |
+| Agents (no `model:` field) | ✅ Yes | None |
+| Agents (`model: inherit`) | ✅ Yes | None |
+| Agents (with `model: claude-*`) | ⚠️ Silent remap | Use DeepSeek name or remove field |
+| Hooks | ✅ Yes | None |
+| MCP tools (harness-dispatched) | ✅ Yes | None |
+| Vision / image inputs in prompts | ❌ Fails | Not supported by DeepSeek |
+| `computer_use` tool | ❌ Fails | Not supported |
+| `cache_control` annotations | ⚠️ Ignored | DeepSeek auto-caches; no action needed |
+| `disable_parallel_tool_use` | ⚠️ Ignored | Parallel tool use will occur |
 
 ---
 
