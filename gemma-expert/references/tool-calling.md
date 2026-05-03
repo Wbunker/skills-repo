@@ -165,6 +165,37 @@ for _ in range(max_iterations):
 
 ---
 
+## Context Collapse Prevention (Long Agent Runs)
+
+At ~80K tokens in a multi-step agent run, context becomes unreliable: tool calls repeat, results get hallucinated, decisions contradict earlier steps. The model can't reliably track history in its context window alone.
+
+**Fix**: Inject a fresh structured system prompt at every agent turn instead of relying on the model to remember accumulated history.
+
+```python
+def build_system_prompt(task: str, tool_descriptions: str, completed_steps: list[str]) -> str:
+    steps_log = "\n".join(f"- {s}" for s in completed_steps)
+    return f"""You are a task-completing agent.
+
+ORIGINAL TASK: {task}
+
+TOOLS AVAILABLE: {tool_descriptions}
+
+COMPLETED STEPS SO FAR:
+{steps_log}
+
+Your job: decide the next action."""
+
+# In your agent loop:
+for _ in range(max_iterations):
+    messages[0] = {"role": "system", "content": build_system_prompt(task, tool_descriptions, completed_steps)}
+    response = client.chat.completions.create(model="gemma-4", messages=messages, tools=tools)
+    # ... handle tool calls, append to completed_steps
+```
+
+This removes the burden of long-range memory from the model — each turn only requires reasoning about the immediate payload.
+
+---
+
 ## Gotchas
 
 - **`--jinja` flag is not optional** for llama.cpp agentic tasks — the most common source of looping bugs

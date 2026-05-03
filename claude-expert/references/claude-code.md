@@ -9,6 +9,7 @@
 - [Hooks](#hooks)
 - [Subagents](#subagents)
 - [MCP Configuration](#mcp-configuration)
+- [Plugins](#plugins)
 - [Background Tasks](#background-tasks)
 - [Built-in Slash Commands](#built-in-slash-commands)
 - [Gotchas](#gotchas)
@@ -207,6 +208,40 @@ MCP tool names in hooks/settings: `mcp__<server-key>__<tool-name>`.
 
 Official MCP registry: `https://api.anthropic.com/mcp-registry/v0/servers`
 
+**Skills vs. MCP — when to use which:**
+
+| Use | Why |
+|---|---|
+| **Skill** | Giving Claude a workflow, pattern, or domain knowledge (advisory, readable, auditable) |
+| **MCP server** | Live data or actions — query current DB state, fetch open GitHub issues, post to Slack |
+
+Prefer skills when in doubt. A skill is a markdown file you can read and audit. An MCP server is a black box. Rule of thumb: if the information could be written down once and remain valid for days, it's a skill; if it needs to be fetched fresh every time, it's MCP.
+
+---
+
+## Plugins
+
+Plugins (public beta) bundle MCPs, skills, hooks, and slash commands into a single installable package. The official Anthropic marketplace (`claude-plugins-official`) is available by default; third-party plugins are also supported.
+
+```bash
+/plugin                              # browse installed plugins and Discover tab
+/plugin install <name>@<publisher>   # install a plugin
+/plugin list                         # list installed plugins
+/plugin update --all                 # update all plugins
+```
+
+Browse the catalog at `claude.com/plugins`.
+
+**Official setup plugin** — `claude-code-setup@claude-plugins-official` reads your project (package.json, directory structure, existing `.claude/` config) and generates tailored recommendations for MCPs, skills, hooks, subagents, and slash commands. It is read-only and makes no changes itself.
+
+```bash
+/plugin install claude-code-setup@claude-plugins-official
+# Then prompt:
+> recommend automations for this project
+```
+
+**Security note:** Plugins can load remote MCP servers and local software. Review what a third-party plugin installs before running it; official (`claude-plugins-official`) plugins pass Anthropic's publishing checks.
+
 ---
 
 ## Background Tasks
@@ -268,6 +303,7 @@ Type `/` in any session to see all available commands. Commands marked **[cloud]
 | `/branch [name]` | Fork current conversation; preserves original for `/resume` |
 | `/rename [name]` | Rename current session |
 | `/btw <question>` | Ask a side question without adding it to the main conversation |
+| `/voice` | Enable push-to-talk input — hold space to speak, release to submit |
 
 ### Model & Performance
 
@@ -312,6 +348,7 @@ Type `/` in any session to see all available commands. Commands marked **[cloud]
 
 | Command | What it does |
 |---|---|
+| `/plugin` | Browse, install, update, and remove plugins (MCPs + skills + hooks bundled) |
 | `/mcp` | Manage MCP server connections and OAuth |
 | `/ide` | Manage IDE integrations |
 | `/install-github-app` | Set up Claude GitHub Actions for a repo |
@@ -337,6 +374,17 @@ Type `/` in any session to see all available commands. Commands marked **[cloud]
 ---
 
 ## Prompting Tips
+
+**Context management** — Do `/compact` manually at around 50% context usage rather than waiting for automatic compaction. At 50% you control what gets preserved; at 90% the automatic summarizer discards whatever it deems low-priority. Pass a focus instruction so the summary retains what matters:
+
+```
+/compact preserve: list of modified files, current test status, and any unresolved issues
+```
+
+Add a standing compaction instruction to your `CLAUDE.md` so the summarizer always knows what to keep:
+```
+When compacting, always preserve: the list of modified files, current test status, and any unresolved issues.
+```
 
 **`ultrathink` keyword** — Prepend `ultrathink` to any prompt in the Claude Code terminal to trigger a 31,999-token thinking budget for that turn:
 ```

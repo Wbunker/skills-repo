@@ -60,6 +60,14 @@ CLAUDE.md files can live in several locations, each with a different scope. More
 - All discovered files are concatenated; `CLAUDE.local.md` is appended after `CLAUDE.md` at each level
 - CLAUDE.md survives `/compact` — re-read from disk and re-injected fresh after compaction
 
+**Compaction timing and preservation**: trigger `/compact` at ~50% context usage, not when the window is nearly full. At 50% you control the summary focus; near 100% the automatic summarizer decides what to discard. Add a standing preservation instruction to CLAUDE.md so the summarizer always retains critical state:
+
+```markdown
+When compacting, always preserve: the list of modified files, current test status, and any unresolved issues.
+```
+
+You can also pass focus instructions inline: `/compact preserve: auth refactor plan, which tests are failing`.
+
 **Monorepos**: use `claudeMdExcludes` in `.claude/settings.local.json` to skip other teams' CLAUDE.md files:
 ```json
 {

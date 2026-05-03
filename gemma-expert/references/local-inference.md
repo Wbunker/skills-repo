@@ -81,6 +81,8 @@ huggingface-cli download unsloth/gemma-4-26b-a4b-GGUF \
 
 **Critical**: Always use `--jinja` if doing any tool calling or agentic work. Without it, tool calls loop or produce malformed output. See [tool-calling.md](tool-calling.md).
 
+**`-np 1`**: Set parallel slots to 1 for agentic workloads to avoid memory overflow from multiple concurrent slot allocation.
+
 **CUDA version**: Use CUDA 13.0, not 13.2. CUDA 13.2 has a bug causing corrupted GGUF outputs (random mid-generation typos, garbled tokens).
 
 ### Quantization Guide

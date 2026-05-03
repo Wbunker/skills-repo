@@ -173,6 +173,41 @@ For CI pipelines: note that `PermissionRequest` hooks do not fire in non-interac
 
 ---
 
+## SubagentStop Pipeline Queue
+
+Use `SubagentStop` to chain agents in a CI-style pipeline without human intervention. Each subagent prints the next step to stdout; Claude sees it as the next suggested action.
+
+**Queue file approach:**
+```json
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "NEXT=$(head -1 .claude/pipeline_queue.txt 2>/dev/null); [ -n \"$NEXT\" ] && sed -i '1d' .claude/pipeline_queue.txt && echo \"$NEXT\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`.claude/pipeline_queue.txt` contains the ordered steps, one per line:
+```
+Use the security-auditor subagent on the changes in the last commit
+Use the test-writer subagent to add coverage for the new endpoint
+Run: gh pr create --title "feat: recommendations endpoint" --body "..."
+```
+
+When the pm-spec subagent finishes, the hook pops the first line, prints it to stdout (which Claude sees as the next action in the transcript), and the pipeline advances. Approve or automate approval per step.
+
+**Key constraint**: only use this when the steps are genuinely sequential. For independent tasks, prefer `/batch` (parallel worktrees) over a serial queue.
+
+---
+
 ## Useful Commands
 
 - **`/init`** — generate a starting CLAUDE.md automatically; Claude analyzes your codebase and creates a file with build commands, test instructions, and conventions it discovers. With `CLAUDE_CODE_NEW_INIT=1`: interactive multi-phase flow that asks which artifacts to set up (CLAUDE.md, skills, hooks)

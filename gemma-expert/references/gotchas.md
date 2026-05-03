@@ -17,6 +17,15 @@ nvcc --version
 # Install CUDA 13.0 via the CUDA toolkit archive if needed
 ```
 
+**Also check your llama.cpp build version**: A separate build-level bug in llama.cpp builds from the b28xx range (late March 2026) produces the same symptom. Fix: use b3000+ for general inference, or b3447+ for flash attention support.
+
+```bash
+llama-server --version
+# If in b28xx range, update immediately
+```
+
+These may be two distinct bugs producing identical symptoms — check both CUDA version and llama.cpp build if you see random mid-generation corruption.
+
 ---
 
 ### 2. `--jinja` Flag Required for Tool Calling in llama.cpp
