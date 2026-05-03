@@ -1,57 +1,73 @@
-# TypeScript / JavaScript Value Objects
+# TypeScript Value Objects
 
 ## Approach Selection
 
 | Use case | Approach |
 |---|---|
-| Full domain VO with behavior + methods | Class with `private constructor` + `static create()` |
-| Type-safe primitive without runtime overhead | Branded type |
-| API boundary validation + type safety in one step | Zod with `.brand<T>()` |
-| Two primitives that form one concept | Class VO (always — branded types can't group fields) |
+| ID types / simple domain primitives | Branded type (zero runtime overhead) |
+| Multi-field concept (money, address, coordinates) | Class VO with `private constructor` |
+| API boundary: validate + brand in one step | Zod `.brand()` |
+| Domain string/number with behavior | Class VO |
 
 ---
 
-## Pattern 1: Class VO with Private Constructor (primary pattern)
+## Pattern 1: Branded Types (preferred for IDs and simple primitives)
+
+Zero runtime overhead — the brand exists only in the type system.
 
 ```typescript
-export class EmailAddress {
-  private constructor(private readonly value: string) {}
+// Generic Brand utility (unique symbol prevents tag-string collisions)
+declare const __brand: unique symbol;
+type Brand<T, B> = T & { readonly [__brand]: B };
 
-  static create(raw: string): EmailAddress {
-    const normalized = raw.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-      throw new Error(`Invalid email address: "${raw}"`);
-    }
-    return new EmailAddress(normalized);
-  }
+type UserId    = Brand<number, "UserId">;
+type TeamId    = Brand<number, "TeamId">;
+type EmailAddress = Brand<string, "EmailAddress">;
 
-  equals(other: EmailAddress): boolean {
-    return this.value === other.value;
-  }
+// Factory functions — the ONLY safe construction boundary
+export function asUserId(n: number): UserId     { return n as UserId; }
+export function asTeamId(n: number): TeamId     { return n as TeamId; }
 
-  toString(): string {
-    return this.value;
-  }
+// TypeScript prevents confusion between same-primitive types:
+function findTeam(id: TeamId): Team { ... }
+// findTeam(userId)  ← TS error: UserId is not assignable to TeamId
 
-  getDomain(): string {
-    return this.value.split('@')[1];
-  }
+// Branded types are subtypes — downstream reads need no changes:
+const url = `/teams/${team.id}`;    // fine: TeamId extends number/string
+const map = new Map<TeamId, Team>(); // fine as map key
+```
+
+**`__brand` is never assigned at runtime** — zero overhead, zero serialization impact.
+
+### Type predicates (runtime narrowing)
+
+```typescript
+function isUserId(n: number): n is UserId {
+  return Number.isInteger(n) && n > 0;
 }
 
 // Usage:
-const email = EmailAddress.create('User@Example.COM');
-// email.value = 'other'   ← TypeScript compile error (readonly)
-// new EmailAddress('bad') ← TypeScript compile error (private constructor)
+if (isUserId(rawId)) {
+  findUser(rawId); // rawId is UserId inside the block
+}
 ```
 
-**Key patterns:**
-- `private constructor` — forces factory method; prevents bypassing validation with `new`
-- `readonly` — TypeScript compile-time immutability
-- `static create()` / `static fromString()` — named factory expresses intent; can have multiple factories
-- `equals(other)` — explicit structural equality (no `==` override in TS)
-- `Object.freeze(this)` — optional; adds runtime immutability on top of TypeScript's compile-time check
+### Assertion functions (imperative narrowing)
 
-### Multi-field VO
+```typescript
+function assertUserId(n: number): asserts n is UserId {
+  if (!Number.isInteger(n) || n <= 0) throw new Error(`Invalid UserId: ${n}`);
+}
+
+assertUserId(rawId); // throws or narrows
+findUser(rawId);     // UserId from here on
+```
+
+---
+
+## Pattern 2: Class VO with Private Constructor
+
+Use for multi-field concepts or when you need rich domain behavior.
 
 ```typescript
 export class Money {
@@ -61,16 +77,14 @@ export class Money {
   ) {}
 
   static of(amount: number, currency: string): Money {
-    if (amount < 0) throw new Error('amount must be non-negative');
+    if (amount < 0) throw new Error("amount must be non-negative");
     const c = currency.trim().toUpperCase();
-    if (c.length !== 3) throw new Error('currency must be 3-letter ISO code');
+    if (c.length !== 3) throw new Error("currency must be 3-letter ISO code");
     return new Money(Math.round(amount * 100) / 100, c);
   }
 
   add(other: Money): Money {
-    if (this.currency !== other.currency) {
-      throw new Error(`Currency mismatch: ${this.currency} vs ${other.currency}`);
-    }
+    if (this.currency !== other.currency) throw new Error("Currency mismatch");
     return Money.of(this.amount + other.amount, this.currency);
   }
 
@@ -78,81 +92,90 @@ export class Money {
     return this.amount === other.amount && this.currency === other.currency;
   }
 
-  toString(): string {
-    return `${this.amount} ${this.currency}`;
+  toString(): string { return `${this.amount} ${this.currency}`; }
+
+  toJSON() { return { amount: this.amount, currency: this.currency }; }
+  static fromJSON(d: { amount: number; currency: string }) { return Money.of(d.amount, d.currency); }
+}
+```
+
+**Key rules:**
+- `private constructor` — forces factory; prevents bypassing validation with `new`
+- Always implement `equals()` — never use `===` for class instance equality
+- Implement `toJSON()` + `static fromJSON()` — class VOs do not serialize transparently
+- `Object.freeze(this)` — optional runtime immutability on top of TypeScript readonly
+
+---
+
+## Pattern 3: Zod `.brand()` (API boundary validation + type safety)
+
+Ideal when you already use Zod for request/response parsing.
+
+```typescript
+import { z } from "zod";
+
+const UserIdSchema = z.number().int().positive().brand<"UserId">();
+const EmailSchema  = z.string().email().transform(s => s.toLowerCase().trim()).brand<"EmailAddress">();
+
+type UserId       = z.infer<typeof UserIdSchema>;
+type EmailAddress = z.infer<typeof EmailSchema>;
+
+// Parse = validate + transform + brand in one step:
+const userId = UserIdSchema.parse(req.params.id);
+const email  = EmailSchema.parse(formData.email);
+```
+
+---
+
+## API Boundary Normalization Pattern
+
+Brand raw API responses at the hook/handler boundary. Trust branded types downstream — no re-casting.
+
+```typescript
+// In a fetch hook (e.g., use-team-detail.ts):
+import { asTeamId, asUserId } from "@/lib/types";
+
+function normalizeTeam(raw: ApiTeam): Team {
+  return {
+    ...raw,
+    id:              asTeamId(raw.id),
+    organization_id: raw.organization_id != null ? asTeamId(raw.organization_id) : null,
+    creator: {
+      ...raw.creator,
+      id: asUserId(raw.creator.id),
+    },
+  };
+}
+
+// Downstream components receive Team with branded fields — no casting needed.
+```
+
+**Rule**: `as BrandedType` is only valid inside factory/normalization functions. Everywhere else it is a smell — add the normalization one level up.
+
+---
+
+## ESLint: Prevent `as BrandedType` Bypasses
+
+Branded type safety collapses if callers cast directly. Enforce via `no-restricted-syntax`:
+
+```json
+// .eslintrc or eslint.config.js
+{
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "TSTypeAssertion[typeAnnotation.typeName.name=/Id$/]",
+        "message": "Use asXxxId() factory instead of direct `as XxxId` casts."
+      }
+    ]
   }
 }
 ```
 
 ---
 
-## Pattern 2: Branded Types (zero runtime overhead)
-
-Use when you need type safety at compile time but don't need methods or runtime validation.
-
-```typescript
-// Generic Brand utility
-type Brand<Base, Tag> = Base & { readonly __brand: Tag };
-
-type EmailAddress = Brand<string, 'EmailAddress'>;
-type UserId       = Brand<number, 'UserId'>;
-type CustomerId   = Brand<number, 'CustomerId'>;
-
-// Factory — only way to get a branded value (validation here)
-function createEmail(raw: string): EmailAddress {
-  const normalized = raw.trim().toLowerCase();
-  if (!normalized.includes('@')) throw new Error('Invalid email');
-  return normalized as EmailAddress;
-}
-
-// TypeScript prevents confusion between same-primitive types:
-function findCustomer(id: CustomerId): Customer { ... }
-// findCustomer(userId)  ← TS error: UserId is not assignable to CustomerId
-```
-
-**`__brand` is never assigned at runtime** — it only exists in the type system. Zero overhead.
-
-### Unique symbol branding (strictest, avoids tag string collision)
-
-```typescript
-declare const __brand: unique symbol;
-type Brand<T, B> = T & { [__brand]: B };
-
-type Percentage = Brand<number, 'Percentage'>;
-type Quantity   = Brand<number, 'Quantity'>;
-// Percentage and Quantity are incompatible even though both wrap number
-```
-
----
-
-## Pattern 3: Zod with `.brand<T>()` (API boundary + domain type)
-
-```typescript
-import { z } from 'zod';
-
-const EmailSchema = z.string()
-  .email()
-  .transform(s => s.toLowerCase().trim())
-  .brand<'EmailAddress'>();
-
-type EmailAddress = z.infer<typeof EmailSchema>;
-
-// Parse = validate + transform + get branded type in one step:
-const email = EmailSchema.parse('USER@EXAMPLE.COM'); // 'user@example.com' as EmailAddress
-// const bad: EmailAddress = 'raw@string' as EmailAddress; ← TS error (can't assign without parse)
-
-// Compose schemas into a complex VO:
-const MoneySchema = z.object({
-  amount: z.number().nonnegative().transform(n => Math.round(n * 100) / 100),
-  currency: z.string().length(3).transform(s => s.toUpperCase()),
-}).brand<'Money'>();
-```
-
----
-
-## Result Type Pattern (avoid throw in factories)
-
-For functional codebases that prefer `Result<T, E>` over exceptions:
+## Result Type Pattern (prefer over throwing in public APIs)
 
 ```typescript
 type Result<T, E = Error> =
@@ -170,29 +193,6 @@ export class EmailAddress {
     return { ok: true, value: new EmailAddress(normalized) };
   }
 }
-
-// Or use a library like neverthrow, true-myth, or fp-ts Either
-```
-
----
-
-## Serialization
-
-```typescript
-// Class VO: implement toJSON for JSON.stringify support
-export class Money {
-  toJSON() {
-    return { amount: this.amount, currency: this.currency };
-  }
-
-  static fromJSON(data: { amount: number; currency: string }): Money {
-    return Money.of(data.amount, data.currency);
-  }
-}
-
-// Branded type: already a primitive — serializes transparently
-const email: EmailAddress = createEmail('user@example.com');
-JSON.stringify({ email }); // '{"email":"user@example.com"}'
 ```
 
 ---
@@ -201,8 +201,16 @@ JSON.stringify({ email }); // '{"email":"user@example.com"}'
 
 | Gotcha | Fix |
 |---|---|
-| `readonly` is compile-time only | Add `Object.freeze(this)` in constructor for runtime immutability |
-| Class VOs don't serialize nicely by default | Implement `toJSON()` |
-| Branded type can be cast with `as` | Factory is the only safe entry point — use `eslint-plugin-no-restricted-syntax` to ban `as BrandedType` |
-| `===` compares identity on class instances | Always implement `equals(other)` method; never use `===` for class VO equality |
-| Private constructor prevents JSON deserialization | Add a `static fromJSON()` factory or a `protected` constructor |
+| `readonly` is compile-time only | Add `Object.freeze(this)` for runtime immutability |
+| Class VOs do not serialize by default | Implement `toJSON()` + `static fromJSON()` |
+| `as BrandedType` bypasses all safety | Factory functions only; add ESLint rule above |
+| `===` compares class instance identity | Always implement `equals(other)`; never `===` |
+| Branded type on `null`-able field | Use `TeamId \| null`, not `TeamId \| undefined` — match API shape |
+| Optimistic / temp IDs | Use factory: `asDayPlanColumnId(-Date.now())` — negative IDs are valid branded values |
+
+---
+
+## Future: Native Opaque Types
+
+TypeScript has open issues (#202, #28515) for native nominal/opaque type support. The branded-type workaround is the current community consensus. If native opaque types land, factory functions will remain the right construction pattern — only the `Brand<T, B>` utility definition will change.
+
