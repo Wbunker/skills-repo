@@ -15,23 +15,32 @@
 
 As of May 2026, DeepSeek's production API models:
 
+### Pricing Summary (USD per 1M tokens)
+
+| Model | Input (cache hit) | Input (cache miss) | Output | Context | Max Output |
+|-------|------------------|--------------------|--------|---------|------------|
+| deepseek-v4-flash | **$0.0028** | $0.14 | $0.28 | 1M | 384K |
+| deepseek-v4-pro | **$0.003625**\* | $0.435\* | $0.87\* | 1M | 384K |
+
+\*V4-Pro at **75% discount** until 2026-05-31. Full price after: ~$0.0145/$1.74/$3.48.  
+Cache hit price reduced to 1/10 of launch price on 2026-04-26 — structure prompts to maximize cache hits.
+
+**Cost context:** DeepSeek V4-Flash output ($0.28/M) is ~55× cheaper than Claude Sonnet output (~$15/M).
+
 ### deepseek-v4-pro
 - **Architecture:** MoE, 1.6T total params / 49B active per token
 - **Context window:** 1,000,000 tokens (1M)
-- **Max output:** 8,192 tokens
+- **Max output:** 384,000 tokens
 - **Thinking mode:** Enabled by default; can be disabled
 - **Tool use:** Yes (including in thinking mode)
-- **Pricing:** ~$0.55/M input (cache miss), ~$0.14/M (cache hit), ~$2.19/M output
-  - 75% launch discount active until 2026-05-31
 - **Best for:** Most complex reasoning, coding, analysis; when quality > cost
 
 ### deepseek-v4-flash
 - **Architecture:** MoE, 284B total params / 13B active per token
 - **Context window:** 1,000,000 tokens (1M)
-- **Max output:** 8,192 tokens
+- **Max output:** 384,000 tokens
 - **Thinking mode:** Available but disabled by default
 - **Tool use:** Yes
-- **Pricing:** ~$0.27/M input (cache miss), ~$0.07/M (cache hit), ~$1.10/M output
 - **Best for:** High-volume tasks, cost-sensitive applications, everyday coding/chat
 
 ---

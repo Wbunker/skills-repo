@@ -168,16 +168,18 @@ DeepSeek automatically caches prompt prefixes. No configuration needed — it ha
 
 Pricing as of May 2026 (USD per 1M tokens). DeepSeek uses **context caching** — cache-hit tokens are cheaper.
 
-| Model | Context | Max Output | Input (cache miss) | Input (cache hit) | Output |
-|-------|---------|------------|-------------------|------------------|--------|
-| deepseek-v4-flash | 1M | 8K | ~$0.27 | ~$0.07 | ~$1.10 |
-| deepseek-v4-pro | 1M | 8K | ~$0.55* | ~$0.14* | ~$2.19* |
-| deepseek-chat (legacy) | 64K | 8K | $0.27 | $0.07 | $1.10 |
-| deepseek-reasoner (legacy) | 64K | 8K (+ 32K CoT) | $0.55 | $0.14 | $2.19 |
+| Model | Context | Max Output | Input (cache hit) | Input (cache miss) | Output |
+|-------|---------|------------|------------------|-------------------|--------|
+| deepseek-v4-flash | 1M | 384K | $0.0028 | $0.14 | $0.28 |
+| deepseek-v4-pro | 1M | 384K | $0.003625* | $0.435* | $0.87* |
+| deepseek-chat (legacy) | 64K | 8K | $0.07 | $0.27 | $1.10 |
+| deepseek-reasoner (legacy) | 64K | 8K+32K CoT | $0.14 | $0.55 | $2.19 |
 
-*V4-Pro at 75% launch discount until 2026-05-31. Check https://api-docs.deepseek.com/quick_start/pricing for current rates.
+*V4-Pro at **75% discount** until 2026-05-31. Full undiscounted price: ~$0.0145/$1.74/$3.48/M.  
+Cache hit price cut to 1/10 of launch price on 2026-04-26.  
+Current rates: https://api-docs.deepseek.com/quick_start/pricing
 
-**Cost comparison context:** DeepSeek is roughly 10–20× cheaper than Claude Sonnet for equivalent tasks.
+**Cost context:** V4-Flash output at $0.28/M is ~55× cheaper than Claude Sonnet (~$15/M).
 
 ---
 

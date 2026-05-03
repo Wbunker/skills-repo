@@ -44,6 +44,7 @@ print(response.choices[0].message.content)
 | Tool use, function calling, strict mode, multi-turn tool loops | [tool-use.md](references/tool-use.md) |
 | Local inference: Ollama, LM Studio, llama.cpp, vLLM, hardware requirements | [local-inference.md](references/local-inference.md) |
 | Full model lineup, context windows, pricing table, R1 distill variants | [models.md](references/models.md) |
+| Claude Code CLI with DeepSeek: env vars, model mapping, what works/doesn't | [claude-code.md](references/claude-code.md) |
 
 ## Core Decision Trees
 
@@ -52,17 +53,20 @@ print(response.choices[0].message.content)
 ```
 What's the task?
 ├── General coding / chat / instruction following
-│   ├── Need cheapest → deepseek-v4-flash (non-thinking)
-│   └── Need best quality → deepseek-v4-pro
+│   ├── Need cheapest ($0.28/M output) → deepseek-v4-flash (non-thinking)
+│   └── Need best quality ($0.87/M output*) → deepseek-v4-pro
 ├── Math / logic / science / complex reasoning
 │   └── Enable thinking mode on v4-pro or v4-flash
 │       → See thinking-mode.md
+├── Claude Code CLI → See claude-code.md
 ├── Local / offline / private
 │   ├── Consumer GPU (≤24GB VRAM) → R1-Distill-Qwen-32B (Q4, ~20GB)
 │   ├── 12GB VRAM → R1-Distill-14B
 │   ├── 8GB VRAM → R1-Distill-7B
 │   └── See local-inference.md for full hardware table
 └── Via OpenRouter → use deepseek/deepseek-chat or deepseek/deepseek-r1
+
+*V4-Pro at 75% discount until 2026-05-31
 ```
 
 ### API vs local?
@@ -93,5 +97,5 @@ Prototyping quickly           → API
 - Thinking mode **ignores** `temperature`, `top_p`, `presence_penalty`, `frequency_penalty` — setting them causes no error but has no effect.
 - In multi-turn conversations with thinking mode + tool calls, **reasoning_content must be passed back** in subsequent requests. Without tool calls, omit it.
 - Strict mode tool calling requires `base_url="https://api.deepseek.com/beta"` — the production endpoint does not support it.
-- Context window is 1M tokens for V4, but **max output is 8K tokens** (not 1M). Don't confuse input context with output limits.
+- Context window is 1M tokens for V4, and **max output is 384K tokens** — not 8K. The legacy deepseek-chat/reasoner models were capped at 8K; V4 removed that limit.
 - R1-Distill models are reasoning-focused; they can be verbose on simple tasks. For instruction-following, V4-Flash is better.
