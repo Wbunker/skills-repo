@@ -34,7 +34,8 @@ Reference hub for Moonshot AI's Kimi platform. Use the decision matrix below, th
 | Real-time token streaming | `stream=True` + SSE | [features.md](references/features.md) |
 | Async bulk jobs (50% off) | Batch API | [integrations.md](references/integrations.md) |
 | Migrate from OpenAI | Change base_url + model ID | [integrations.md](references/integrations.md) |
-| Use Kimi in Claude Code / Cline / RooCode | Custom base_url config | [integrations.md](references/integrations.md) |
+| Use Kimi in Claude Code via direct API | Custom base_url config | [integrations.md](references/integrations.md) |
+| Use Kimi in Claude Code via Ollama Cloud | `ollama launch claude --model kimi-k2.6:cloud` | [integrations.md](references/integrations.md) |
 | Choose the right model | Model families + pricing | [models.md](references/models.md) |
 
 ---
@@ -69,7 +70,9 @@ Moonshot AI's flagship model (as of April 2026). Open-weights. Competitive with 
 **Strengths:** SWE-Bench Pro, long-horizon autonomous coding (13-hour sessions demonstrated), DeepSearchQA (+14 pts over GPT-5.4), BrowseComp with agent swarm.  
 **Gaps vs closed frontier:** Hard reasoning/math olympiad tasks, vision (BabyVision ~12 pts behind Gemini 3.1 Pro).
 
-Agent Swarm: scales to 300 concurrent sub-agents for parallel research workflows. Preview at `kimi.com/agent-swarm`.
+Agent Swarm: scales to 300 concurrent sub-agents, 4,000 coordinated steps — ~4.5x speedup over single-agent execution on parallel-decomposable tasks. Preview at `kimi.com/agent-swarm`.
+
+**K2.6 vs K2.5 improvements:** deeper reasoning chains, better swarm routing (stays parallel instead of falling back to single-agent), improved full-stack/frontend code quality, dedicated debugging sub-agent routing for cross-file bugs. See [models.md](references/models.md) for details.
 
 ---
 

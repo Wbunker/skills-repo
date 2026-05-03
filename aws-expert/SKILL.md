@@ -48,7 +48,7 @@ When a query touches multiple namespaces and context is limited, prioritize load
 | [security-iam.md](references/security-iam.md) | IAM, STS, Identity Center, Organizations, Cognito, KMS, GuardDuty, Security Hub, WAF, Shield, Network Firewall |
 | [ml-ai.md](references/ml-ai.md) | Bedrock, SageMaker, Amazon Q, Rekognition, Comprehend, Transcribe, Translate, Lex, Personalize, Forecast, Kendra |
 | [analytics.md](references/analytics.md) | Redshift, Athena, EMR, Glue, Kinesis, MSK, OpenSearch, QuickSight, Lake Formation, DataZone, Clean Rooms |
-| [management-devops.md](references/management-devops.md) | CloudFormation, CDK, SAM, CloudTrail, CloudWatch, Systems Manager, Config, Control Tower, CodePipeline, X-Ray |
+| [management-devops.md](references/management-devops.md) | CloudFormation, CDK, SAM, CloudTrail, CloudWatch, CloudWatch Logs Insights, Systems Manager, Config, Control Tower, CodePipeline, X-Ray |
 | [serverless-integration.md](references/serverless-integration.md) | Lambda, API Gateway, Step Functions, EventBridge, SQS, SNS, AppSync, MQ, AppFlow |
 | [containers.md](references/containers.md) | ECS, ECR, EKS, Fargate, App Runner, App Mesh |
 | [cost-optimization.md](references/cost-optimization.md) | Savings Plans, Reserved Instances, Spot, Compute Optimizer, Cost Explorer, Budgets, CUR, tagging |

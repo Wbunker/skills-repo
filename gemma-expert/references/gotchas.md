@@ -157,6 +157,24 @@ Test your RAG pipeline explicitly with questions whose answers conflict with the
 
 ---
 
+---
+
+### 11. Python Coding Task Quality Profile (vs. Proprietary Models)
+
+Gemma 4 31B handles ~75–80% of typical Python coding tasks correctly on first attempt vs. Claude Opus 4.6. Specific failure patterns:
+
+**Debugging — multi-file root cause**: Identifies root cause correctly ~4/5 tasks. On complex bugs spanning multiple files, identifies the symptom rather than the underlying cause and requires a follow-up prompt. Use explicit "find the root cause in all related files" framing.
+
+**Test writing — edge case coverage**: Generates solid happy-path tests but misses edge cases that only appear under specific conditions. Fix: explicitly enumerate edge cases to cover in the prompt.
+
+**Feature writing — project-specific naming**: May miss project-specific naming conventions when generating new code. Mitigated by providing the full codebase context via the 256K context window rather than summarizing patterns.
+
+**Refactoring**: Comparable to GPT-5.4; behind Gemini 3.1 Pro. Produces readable separation of concerns; naming choices are reasonable but not as nuanced as frontier models.
+
+**Takeaway**: Gemma 4 follows detailed instructions well — compensate for weaknesses by being more explicit in prompts, not by switching models.
+
+---
+
 ## Quick Diagnostic Checklist
 
 Before filing a bug or asking for help, check:

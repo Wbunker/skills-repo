@@ -287,22 +287,16 @@ aws logs describe-queries --log-group-name /myapp/production --status Running
 aws logs stop-query --query-id <query-id>
 
 # --- Metric Filters ---
-# Create a metric filter (count ERRORs → custom metric)
+# See cloudwatch-metric-filters-cli.md for full reference (put, test, describe, delete, alarm patterns)
 aws logs put-metric-filter \
   --log-group-name /myapp/production \
   --filter-name error-count \
   --filter-pattern "ERROR" \
   --metric-transformations \
-    metricName=ErrorCount,metricNamespace=MyApp,metricValue=1,defaultValue=0
-
-# Describe metric filters
-aws logs describe-metric-filters \
-  --log-group-name /myapp/production
-
-# Delete a metric filter
-aws logs delete-metric-filter \
-  --log-group-name /myapp/production \
-  --filter-name error-count
+    metricName=ErrorCount,metricNamespace=MyApp,metricValue=1,defaultValue=0,unit=Count
+aws logs describe-metric-filters --log-group-name /myapp/production
+aws logs test-metric-filter --filter-pattern "ERROR" --log-event-messages "msg1" "msg2"
+aws logs delete-metric-filter --log-group-name /myapp/production --filter-name error-count
 
 # --- Subscription Filters ---
 # Stream logs to Lambda in real time

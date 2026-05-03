@@ -43,6 +43,15 @@ response = ollama.chat(
 print(response["message"]["content"])
 ```
 
+### Inference Speed Reference (RTX 4090, 24 GB VRAM)
+
+| Model | Task Type | Response Time |
+|-------|-----------|---------------|
+| gemma-4-31b | Typical coding prompts | 8–15 seconds |
+| gemma-4-26b-a4b (Q3_K_M) | Typical coding prompts | ~5–10 seconds |
+
+Fast enough for development flow. API models (Claude, GPT-5.4) are faster due to server-side batching, but local latency is acceptable for interactive coding work.
+
 ### Known Ollama Bug
 
 `think=false` combined with structured output (`format`) is an open bug in Ollama — they conflict. Use one or the other, not both.
