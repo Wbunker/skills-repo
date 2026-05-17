@@ -41,6 +41,8 @@ Replaces the older Origin Access Identity (OAI). OAC uses SigV4 signing to authe
 
 **Key differences**: CloudFront Functions run at all 400+ edge locations (extremely low latency); Lambda@Edge runs at ~13 regional PoPs. CloudFront Functions cannot make network calls or access the request body.
 
+For full Lambda@Edge reference (event structures, limits, restrictions, code patterns, IAM), see [../compute/lambda-edge-capabilities.md](../compute/lambda-edge-capabilities.md).
+
 ### Access Control
 
 | Feature | Description |

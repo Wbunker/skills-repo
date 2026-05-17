@@ -38,7 +38,8 @@ See [cloudwatch-alarms-capabilities.md](cloudwatch-alarms-capabilities.md) for f
 
 | Feature | Description |
 |---|---|
-| **Application Signals** | Automatic instrumentation for latency, error rate, and request rate KPIs; SLO tracking |
+| **ServiceLens / Trace Map** | Unified topology map combining X-Ray traces, CloudWatch metrics, alarms, and Logs Insights pivots; now lives at CloudWatch console → X-Ray Traces → Trace Map. See [cloudwatch-servicelens-capabilities.md](cloudwatch-servicelens-capabilities.md) for full reference. |
+| **Application Signals** | GA 2024 APM layer built on X-Ray + CloudWatch; automatic instrumentation (Java/Python/Node.js/.NET via CloudWatch agent), RED metrics per operation, SLO/SLI tracking; supersedes ServiceLens. See [xray-fis-capabilities.md](xray-fis-capabilities.md) for SLO CLI. |
 | **CloudWatch Synthetics** | Canaries (Node.js or Python scripts) that simulate user flows on a schedule; detect availability issues before users do. See [cloudwatch-synthetics-capabilities.md](cloudwatch-synthetics-capabilities.md) for full reference. |
 | **CloudWatch RUM** | Real User Monitoring; JavaScript snippet injects telemetry into web pages; captures page load times, JS errors, HTTP errors |
 | **Evidently** | Feature flags and A/B testing; control feature rollout percentages; run experiments with statistical analysis |

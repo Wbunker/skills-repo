@@ -312,10 +312,10 @@ aws route53 create-hosted-zone \
 
 ```bash
 # --- Search and Browse Applications ---
-# List public applications (no auth required for public apps)
+# List applications you own (or accessible private apps)
 aws serverlessrepo list-applications
 
-# Search for applications by keyword
+# Search for applications by keyword (JMESPath filter on name)
 aws serverlessrepo list-applications \
   --query 'Applications[?contains(Name, `s3`)]'
 
@@ -332,13 +332,14 @@ aws serverlessrepo get-application \
 aws serverlessrepo list-application-versions \
   --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app
 
-# --- Deploy an Application ---
-# Step 1: Get the CloudFormation template for the app version
-aws serverlessrepo create-cloud-formation-template \
+# List nested application dependencies for a specific version
+aws serverlessrepo list-application-dependencies \
   --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
   --semantic-version 1.0.0
 
-# Step 2: Create a CloudFormation change set
+# --- Deploy an Application (Change Set Method) ---
+# Step 1: Create a CloudFormation change set for the SAR app
+#   Note: deployed stack will be named serverlessrepo-my-app-stack (SAR prepends prefix)
 aws serverlessrepo create-cloud-formation-change-set \
   --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
   --semantic-version 1.0.0 \
@@ -346,36 +347,78 @@ aws serverlessrepo create-cloud-formation-change-set \
   --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
   --parameter-overrides '[{"Name":"BucketName","Value":"my-trigger-bucket"}]'
 
-# Step 3: Execute the change set (get change-set-id from step 2 output)
+# Step 2: Execute the change set (get change-set-id from step 1 output)
 aws cloudformation execute-change-set \
   --change-set-name arn:aws:cloudformation:us-east-1:123456789012:changeSet/my-app-stack-changeset/abc123
 
-# Monitor the stack deployment
+# Monitor the stack deployment (stack name has serverlessrepo- prefix)
 aws cloudformation describe-stacks \
-  --stack-name my-app-stack \
+  --stack-name serverlessrepo-my-app-stack \
   --query 'Stacks[0].StackStatus'
 
-# --- Publish an Application ---
-# Package the SAM app (upload code to S3, replace local paths with S3 URIs)
+# --- Deploy an Application (Template URL Method — for nested stacks / cross-account) ---
+# Step 1: Request a CloudFormation template for the app version
+TEMPLATE_ID=$(aws serverlessrepo create-cloud-formation-template \
+  --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
+  --semantic-version 1.0.0 \
+  --query TemplateId --output text)
+
+# Step 2: Poll until Status == ACTIVE (templates expire after 1 hour)
+aws serverlessrepo get-cloud-formation-template \
+  --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
+  --template-id "$TEMPLATE_ID" \
+  --query '[Status, TemplateUrl]'
+
+# Step 3: Once ACTIVE, use TemplateUrl with standard CloudFormation deploy
+TEMPLATE_URL=$(aws serverlessrepo get-cloud-formation-template \
+  --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
+  --template-id "$TEMPLATE_ID" \
+  --query TemplateUrl --output text)
+aws cloudformation create-stack \
+  --stack-name my-app-stack \
+  --template-url "$TEMPLATE_URL" \
+  --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+
+# --- Publish an Application (SAM CLI — recommended) ---
+# Package: zip code, upload to S3, replace local paths with S3 URIs
 sam package \
   --template-file template.yaml \
   --output-template-file packaged.yaml \
   --s3-bucket my-sar-artifacts-bucket
 
-# Publish to SAR (uses the Metadata block in template.yaml)
+# First publish (creates the SAR application record from Metadata block)
 sam publish \
   --template packaged.yaml \
   --region us-east-1
 
-# Publish a new version of an existing app
-# (update SemanticVersion in template.yaml Metadata block, then re-package and publish)
+# Subsequent versions: bump SemanticVersion in Metadata block, re-package, re-publish
+
+# --- Publish an Application (Low-level CLI — for CI/CD pipelines) ---
+# Create the application record (first time only)
+aws serverlessrepo create-application \
+  --author "platform-team" \
+  --description "Example serverless app" \
+  --name my-app \
+  --spdx-license-id Apache-2.0 \
+  --readme-url s3://my-sar-artifacts-bucket/README.md \
+  --license-url s3://my-sar-artifacts-bucket/LICENSE.txt \
+  --semantic-version 1.0.0 \
+  --template-url s3://my-sar-artifacts-bucket/packaged.yaml \
+  --source-code-url https://github.com/org/my-app
+
+# Publish a new version of an existing application (subsequent versions)
+aws serverlessrepo create-application-version \
+  --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
+  --semantic-version 1.1.0 \
+  --template-url s3://my-sar-artifacts-bucket/packaged.yaml \
+  --source-code-url https://github.com/org/my-app/tree/v1.1.0
 
 # --- Manage Application Sharing ---
 # Make an application public (share with all AWS accounts)
 aws serverlessrepo put-application-policy \
   --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
   --statements '[{
-    "Actions": ["ServerlessRepo:Deploy","ServerlessRepo:Search"],
+    "Actions": ["Deploy","Search"],
     "Principals": ["*"],
     "StatementId": "make-public"
   }]'
@@ -384,14 +427,45 @@ aws serverlessrepo put-application-policy \
 aws serverlessrepo put-application-policy \
   --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
   --statements '[{
-    "Actions": ["ServerlessRepo:Deploy"],
+    "Actions": ["Deploy"],
     "Principals": ["987654321098"],
     "StatementId": "share-with-partner"
+  }]'
+
+# Share with all accounts in an AWS Organization
+#   PrincipalOrgIDs requires UnshareApplication in Actions
+aws serverlessrepo put-application-policy \
+  --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
+  --statements '[{
+    "Actions": ["Deploy","Search","UnshareApplication"],
+    "Principals": ["*"],
+    "PrincipalOrgIDs": ["o-exampleorgid11"],
+    "StatementId": "share-with-org"
+  }]'
+
+# Unshare from an AWS Organization (irreversible — cannot re-share with same org after this)
+#   Must be called from the management account
+aws serverlessrepo unshare-application \
+  --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
+  --organization-id o-exampleorgid11
+
+# Share for nested application use only (consumer needs GetApplication + CreateCloudFormationTemplate)
+aws serverlessrepo put-application-policy \
+  --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
+  --statements '[{
+    "Actions": ["GetApplication","CreateCloudFormationTemplate"],
+    "Principals": ["987654321098"],
+    "StatementId": "nested-app-access"
   }]'
 
 # View current sharing policy
 aws serverlessrepo get-application-policy \
   --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app
+
+# Remove all sharing (make private again — reversible)
+aws serverlessrepo put-application-policy \
+  --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app \
+  --statements '[]'
 
 # --- Update or Delete ---
 # Update application metadata (description, readme, home page URL)
@@ -400,7 +474,7 @@ aws serverlessrepo update-application \
   --description "Updated description for my-app" \
   --readme-url s3://my-sar-artifacts-bucket/README.md
 
-# Delete an application (and all its versions)
+# Delete an application and all its versions
 aws serverlessrepo delete-application \
   --application-id arn:aws:serverlessrepo:us-east-1:123456789012:applications/my-app
 ```

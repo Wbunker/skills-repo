@@ -12,6 +12,7 @@
 - [Plugins](#plugins)
 - [Background Tasks](#background-tasks)
 - [Built-in Slash Commands](#built-in-slash-commands)
+- [Mobile Push Notifications](#mobile-push-notifications)
 - [Gotchas](#gotchas)
 - [Prompting Tips](#prompting-tips)
 
@@ -269,21 +270,35 @@ Type `/` in any session to see all available commands. Commands marked **[cloud]
 | Command | What it does | Cost | Requirements |
 |---|---|---|---|
 | `/review` | Single-pass local review; prompts to pick PR, branch, or files | Normal usage | Git repo |
-| `/ultrareview` | **[cloud]** Multi-agent review — each agent independently reproduces and verifies findings before reporting | 3 free runs (Pro/Max), then $5–$20/review | v2.1.86+, Claude.ai auth, extra usage enabled |
+| `/ultrareview` | **[cloud]** Two-stage multi-agent review — Find fleet hunts bugs, Verify fleet reproduces each finding before reporting | ~$5–$20/run (free tier ended May 5, 2026) | v2.1.111+, Claude.ai auth, extra usage enabled |
 | `/security-review` | Security-focused scan of pending changes on current branch | Normal usage | Git repo |
 
 **`/ultrareview` details:**
 - Runs in a remote cloud sandbox, not your local session
-- Launches multiple parallel agents that each reproduce findings — reduces false positives vs `/review`
-- Takes 5–10 min vs seconds for `/review`
-- Shows a confirmation dialog (scope, remaining free runs, estimated cost) before any paid run
+- **Two-stage architecture:** a Find fleet (5 agents for small PRs, up to 20 for 1000+ line diffs) hunts bugs by specialty — logic/off-by-ones, injection/auth gaps, N+1/unbounded reads, pattern violations, test coverage holes. A separate Verify fleet tries to independently reproduce each finding; only reproduced bugs reach your terminal. Published false-positive rate: <1%.
+- Takes 10–20 min (scales with diff size) vs seconds for `/review`
+- Shows a confirmation dialog (scope, estimated cost) before each run
 - Not available on Amazon Bedrock, Google Cloud Vertex AI, Microsoft Foundry, or orgs with Zero Data Retention
-- Team/Enterprise plans get 0 free runs (billed immediately)
-- Setup: `claude --version` (need v2.1.86+) → `/login` → `/extra-usage` to enable billing
+- Team/Enterprise plans are billed immediately (no free runs)
+- Free tier (3 runs for Pro/Max) ended May 5, 2026 — every run is now metered
+- Setup: `claude --version` (need v2.1.111+) → `/login` → `/extra-usage` to enable billing
+
+**Scoping:**
+```
+/ultrareview                    # reviews current branch vs main (not full codebase)
+/ultrareview HEAD~5..HEAD       # specific commit range
+/ultrareview src/auth/          # specific directory
+```
+
+**Known issues:**
+- **#50029** — empty findings on branches above an unspecified diff-size ceiling (large monorepos)
+- **#52780 / #55062** — rate-limit failures silently consume budget without delivering a report; do not retry immediately, and do not run two `/ultrareview` in parallel from the same account
+- **#54671** — no-arg form reviews branch diff vs main, not the full codebase; developers expect a whole-repo review and are surprised by the scope
 
 **When to use each:**
-- `/review` — daily iteration, quick feedback while working
-- `/ultrareview` — pre-merge gate on auth, payments, API endpoints, or any high-risk change
+- `/review` — daily iteration, quick feedback while coding (free, seconds)
+- `/ultrareview` — pre-merge gate on diffs over 1000 lines, or anything touching auth, money, or model loading; ~$14/run average
+- Layer: `/review` while iterating → CodeRabbit on every push for style → `/ultrareview` selectively before high-risk merges
 
 ### Planning
 
@@ -355,12 +370,51 @@ Type `/` in any session to see all available commands. Commands marked **[cloud]
 | `/install-slack-app` | Install Claude Slack app (opens OAuth flow) |
 | `/teleport` / `/tp` | Pull a claude.ai web session into local terminal |
 | `/remote-control` / `/rc` | Make current session available for remote control from claude.ai |
+| `/mobile` | Display QR code for downloading the Claude mobile app |
 | `/autofix-pr [prompt]` | **[cloud]** Watch a PR and push fixes when CI fails or reviewers comment |
 | `/desktop` / `/app` | Continue current session in Claude Code Desktop |
 
 ---
 
+## Mobile Push Notifications
 
+Requires Claude Code v2.1.110+ and the Claude mobile app (iOS or Android) signed in with the same account.
+
+**How it works:** Push notifications are built on top of Remote Control — without an active Remote Control session, no pushes fire. The session stream travels through Anthropic's API (HTTPS, port 443 outbound); no inbound ports are opened on your machine.
+
+**Two push triggers:**
+1. **Task completes** — Claude finishes and is ready to report back
+2. **Needs input** — Claude hits a decision point and waits for you
+
+**Setup:**
+```bash
+claude --version          # must be v2.1.110+
+claude update             # update if behind
+```
+1. Install the Claude mobile app; sign in with the same account used for Claude Code.
+2. Grant notification permission (iOS: Settings → Notifications → Claude; Android: exempt Claude from battery optimization).
+3. In Claude Code, run `/config` → enable **Push when Claude decides**.
+
+**Starting Remote Control (three options):**
+```bash
+claude remote-control      # server mode — stays running, accepts multiple connections
+claude --remote-control    # start session with remote control enabled (recommended)
+/remote-control            # enable inside an active session
+```
+For remote control on every session without the flag: `/config` → **Enable Remote Control for all sessions → true**.
+
+**One session per process** (outside server mode): two Claude Code instances each get their own remote session; they don't interfere and can't be viewed together from one phone view. Use `claude remote-control` (server mode) to manage parallel sessions.
+
+**Prompt-triggered notifications:** Tell Claude exactly when to push:
+```
+Review calculator.py and fix all issues, then run tests.
+Notify me when all tests are passing and the refactor is complete.
+```
+For troubleshooting, test with: `Print hello world then notify me when done` — switch to your phone immediately after submitting.
+
+---
+
+## Gotchas
 
 - **`CLAUDE.md` is always loaded** — keep it concise; every session pays the token cost.
 - **Settings scopes are additive** — `deny` rules from any scope are honored; most-specific wins for `allow`.

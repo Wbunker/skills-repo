@@ -41,6 +41,45 @@ Java library (also available for Python, Ruby, Node.js via MultiLangDaemon) that
 | **Shard splitting/merging** | Increase capacity by splitting hot shards; reduce cost by merging cold shards |
 | **Resource-based policy** | Control cross-account access to streams |
 
+### Producer Error Handling
+
+**`PutRecord` (single record):** Throws exceptions at the API level — any error means the record was not written. Key exceptions: `ProvisionedThroughputExceededException` (HTTP 400), `ResourceNotFoundException`, `InternalFailureException` (HTTP 500), and KMS errors (`KMSAccessDeniedException`, `KMSThrottlingException`, etc.).
+
+**`PutRecords` (batch, up to 500 records / 10 MiB):** Always returns HTTP 200 — check `FailedRecordCount` in the response. The `Records[]` array is positionally correlated with the request:
+- **Success:** entry has `SequenceNumber` + `ShardId`
+- **Failure:** entry has `ErrorCode` + `ErrorMessage` (no sequence number)
+
+Per-record `ErrorCode` values inside a `PutRecords` response: **`ProvisionedThroughputExceededException`** or **`InternalFailure`** only. `ResourceNotFoundException` only appears at the whole-request level.
+
+**Retry strategy:** Check `FailedRecordCount > 0`, iterate `Records[]` by index to find entries with `ErrorCode`, extract the original records at those positions, and resubmit. AWS SDKs do **not** auto-retry `PutRecords` partial failures — your code must do this.
+
+**`ProvisionedThroughputExceededException` triggers:**
+
+| Direction | Limit per shard |
+|---|---|
+| Write | 1,000 records/sec OR 1 MB/sec |
+| Read (`GetRecords`) | 5 TPS OR 2 MB/sec; if a call returns 10 MiB, wait ≥5 seconds before the next call |
+
+Throttling is per-shard — some shards may be throttled while others are not. Use exponential backoff with jitter starting at 1 second.
+
+**KPL (Kinesis Producer Library):** Aggregates logical records into Kinesis records (up to 1 MiB) and batches via `PutRecords`. Automatically detects per-record failures by index, de-aggregates failed batches, and retries failed logical records. The `addUserRecord()` future resolves to a `UserRecordResult` with `isSuccessful()`, `getAttempts()` (each with error code, message, delay), and throws `UserRecordFailedException` on terminal failure.
+
+### Consumer Error Handling (Non-Lambda)
+
+**KCL checkpointing:** KCL stores the last processed sequence number in a DynamoDB lease table. If a worker crashes before calling `checkpointer.checkpoint()`, another worker takes the shard lease and re-reads from the last checkpointed position — **at-least-once semantics**. On `TERMINATE` shutdown (shard split/merge), the processor must checkpoint before returning or child shards will not start.
+
+**Enhanced fan-out (`SubscribeToShard`):** Uses HTTP/2 push; subscriptions last up to 5 minutes and must be renewed. On interruption, re-call `SubscribeToShard` with `StartingPosition` set to `AFTER_SEQUENCE_NUMBER` of the last received record. KCL 2.x handles reconnect automatically.
+
+**`GetRecords` / `GetShardIterator` errors:**
+
+| Error | Cause | Resolution |
+|---|---|---|
+| `ExpiredIteratorException` | Iterator unused for >5 minutes | Call `GetShardIterator` again with same type + sequence number |
+| `ProvisionedThroughputExceededException` | Exceeded 2 MB/sec or 5 TPS per shard | Wait ≥1 second between calls; if 10 MiB returned, wait ≥5 seconds |
+| `ResourceNotFoundException` | Stream or shard does not exist | Verify stream name/ARN and shard ID |
+
+**Lambda ESM error handling** (bisect-on-error, MaximumRetryAttempts, MaximumRecordAgeInSeconds, shard blocking, on-failure destinations): see [lambda-error-handling-capabilities.md](../../compute/lambda-error-handling-capabilities.md).
+
 ---
 
 ## Amazon Data Firehose
@@ -79,6 +118,38 @@ Java library (also available for Python, Ruby, Node.js via MultiLangDaemon) that
 | **Data compression** | GZIP, Snappy, ZIP, Hadoop-compatible SNAPPY for S3 destination |
 | **Error output** | Failed records written to a separate S3 prefix for reprocessing |
 | **Source record backup** | Optionally back up all source records to S3 regardless of transformation outcome |
+
+### Firehose Error Handling
+
+**Lambda transformation failures:**
+- Record returning `result: "ProcessingFailed"` from Lambda → immediately treated as failed (no Lambda-level retry by Firehose)
+- Lambda invocation failure (network/timeout) → Firehose retries 3× (configurable via `RetryOptions` in `ProcessingConfiguration`), then skips the batch and marks as failed
+- Lambda max duration supported: 5 minutes; exceeding produces a timeout error
+- Failed transformation records written to `processing-failed/` S3 prefix with this structure:
+```json
+{
+  "attemptsMade": 3,
+  "arrivalTimestamp": "...",
+  "errorCode": "...",
+  "errorMessage": "...",
+  "attemptEndingTimestamp": "...",
+  "rawData": "<base64 original record>",
+  "lambdaArn": "..."
+}
+```
+
+**Delivery failure retry durations and error output:**
+
+| Destination | Retry duration | Error output location |
+|---|---|---|
+| **S3** | Retries indefinitely (up to stream retention for KDS/MSK source; 24h for DirectPut) | No separate error prefix — Firehose keeps retrying |
+| **Redshift** | 0–7200 seconds (configurable) | Skipped S3 objects listed in a manifest file in `errors/` S3 folder |
+| **OpenSearch Service** | 0–7200 seconds (configurable) | `AmazonOpenSearchService_failed/` S3 prefix |
+| **Splunk** | Configurable | S3 backup; error includes `Splunk.AckTimeout` error code |
+| **HTTP endpoint** | Configurable | S3 backup; error includes `HttpEndpoint.DestinationException` |
+| **Snowflake** | 0–7200 seconds, default 60s | `snowflake-failed/` S3 prefix; non-retriable errors (schema mismatch, wrong role) skip retry entirely |
+
+Error records for all destinations include: `attemptsMade`, `arrivalTimestamp`, `errorCode`, `errorMessage`, `attemptEndingTimestamp`, `rawData` (base64), and destination-specific fields (e.g., `esIndexName` for OpenSearch, `EventId` for Splunk).
 
 ---
 

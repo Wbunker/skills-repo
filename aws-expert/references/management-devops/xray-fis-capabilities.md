@@ -23,11 +23,13 @@ For CLI commands, see [xray-fis-cli.md](xray-fis-cli.md).
 
 ### Instrumentation
 
+> **Note:** The X-Ray SDK/Daemon entered maintenance mode on 2026-02-25. AWS recommends migrating to ADOT + OpenTelemetry SDKs for new instrumentation. See [adot-capabilities.md](adot-capabilities.md) for the full reference.
+
 - **AWS SDK calls**: Automatically traced when using X-Ray SDK wrapper
 - **Incoming HTTP requests**: Middleware intercepts and starts a segment per request
-- **Lambda**: Active tracing enabled via function configuration; daemon pre-installed
-- **ECS**: Sidecar container pattern for the X-Ray daemon; or use AWS Distro for OpenTelemetry (ADOT)
-- **OpenTelemetry**: X-Ray supports OTLP trace ingestion via AWS Distro for OpenTelemetry
+- **Lambda**: Active tracing enabled via function configuration; daemon pre-installed; or ADOT Lambda layer
+- **ECS**: Sidecar container pattern for the X-Ray daemon; or ADOT Collector sidecar
+- **OpenTelemetry (ADOT)**: `awsxray` receiver on UDP 2000 is a drop-in daemon replacement; `awsxray` exporter sends OTel spans to X-Ray — service map renders identically
 
 ### Sampling
 
@@ -35,6 +37,89 @@ For CLI commands, see [xray-fis-cli.md](xray-fis-cli.md).
 Default rule: 1 reservoir (1 req/sec guaranteed) + 5% fixed rate of remaining requests
 Custom rules: Define reservoir size and fixed rate per service name, URL, method, annotation
 ```
+
+### Filter Expression Syntax
+
+Used in `get-trace-summaries --filter-expression` and group definitions.
+
+**Boolean keywords** — standalone or with `= true/false` or `!`:
+`error` | `fault` | `throttle` | `partial`
+
+**Numeric keywords** — support `=`, `!=`, `<`, `<=`, `>`, `>=`:
+`responsetime` | `duration` | `http.status`
+
+**String keywords** — support `=`, `!=`, `CONTAINS`, `BEGINSWITH`:
+`http.url` | `http.method` | `user` | `name`
+
+**Annotation keyword** — indexed, filterable:
+`annotation.key = "value"` or `annotation[key.with.dots] = "value"`
+
+**Complex keywords:**
+```
+service("name") { filter }        -- apply filter inside a specific service node
+edge("source", "dest") { filter } -- apply filter to a specific service edge
+```
+
+**Compound operators:** `AND`, `OR`
+
+**Examples:**
+```
+fault AND responsetime > 5
+service("payments") { error }
+annotation.version = "2.0" AND http.status = 500
+edge("frontend", "api") { throttle }
+!error AND http.method = "POST"
+```
+
+### X-Ray Insights
+
+**Purpose**: Automated anomaly detection on top of trace groups — detects when a service's fault rate breaches its statistically normal band (dynamic threshold, not a static alarm).
+
+| Aspect | Detail |
+|---|---|
+| **Vs. groups** | Groups are saved filter expressions; Insights operate *on top of* groups. An Insight is an auto-generated incident record; groups are just buckets |
+| **Lifecycle** | Created → updated (significant change) → closed; each transition emits an EventBridge event |
+| **Notifications** | Route EventBridge events to SNS, Lambda, SQS, or any target |
+| **Enabling** | Per group: `InsightsEnabled=true` + optionally `NotificationsEnabled=true` in `--insights-configuration` |
+
+### AWS Application Signals (GA 2024)
+
+**Purpose**: CloudWatch APM layer built on X-Ray traces + CloudWatch metrics + Container Insights. Auto-instruments apps (Java, Python, Node.js) via CloudWatch agent — no code changes required.
+
+**Relationship to X-Ray**: Consumes X-Ray trace data and correlates it with RED metrics (requests, errors, duration) to surface per-operation health. X-Ray remains the underlying trace store.
+
+**SLO/SLI model**:
+
+| Concept | Description |
+|---|---|
+| **SLI** | Availability or latency metric derived from a service operation; measured from Application Signals data |
+| **SLO** | Tracks SLI attainment against a goal over a rolling or calendar window |
+| **SLO types** | Period-based (time window) or request-based (ratio of good/total requests) |
+
+### CloudWatch ServiceLens / Trace Map
+
+ServiceLens has been merged into the CloudWatch **Trace Map** (CloudWatch console → X-Ray Traces → Trace Map). It adds CloudWatch metrics tabs, alarm overlays, Logs Insights pivots, cross-account node filtering, and SQS passive trace linking — none of which exist in the standalone X-Ray console.
+
+See [cloudwatch-servicelens-capabilities.md](cloudwatch-servicelens-capabilities.md) for full reference including node coloring, OAM cross-account setup, passive trace linking for SQS/SNS/EventBridge, and the complete feature delta table.
+
+### Service Integrations
+
+**Step Functions**
+
+| Aspect | Detail |
+|---|---|
+| **Enabling** | Toggle on state machine creation or update via `--tracing-configuration enabled=true` |
+| **Required IAM actions** | `xray:PutTraceSegments`, `xray:PutTelemetryRecords`, `xray:GetSamplingRules`, `xray:GetSamplingTargets` |
+| **Segment structure** | One segment per execution; each state transition = subsegment; each service integration (Lambda, DynamoDB, SQS…) adds its own subsegment |
+
+**API Gateway**
+
+| Aspect | Detail |
+|---|---|
+| **Active tracing** | REST APIs only (HTTP APIs have limited support); enabled per stage |
+| **Trace header** | API Gateway injects `X-Amzn-Trace-Id: Root=...;Sampled=1` on all inbound requests, forwarding to backends |
+| **Sampling** | Active tracing forces sampling of all requests for that stage regardless of SDK sampling rules |
+| **Service map** | Shows one node per stage, one node per unique downstream URL path, connected nodes for Lambda/DynamoDB backends |
 
 ---
 

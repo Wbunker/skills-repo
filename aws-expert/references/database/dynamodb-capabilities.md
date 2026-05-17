@@ -37,12 +37,62 @@ For CLI commands, see [dynamodb-cli.md](dynamodb-cli.md).
 | **Transactions** | `TransactWriteItems` and `TransactGetItems`; ACID across up to 100 items in multiple tables; 2× the cost of standard reads/writes |
 | **PartiQL** | SQL-compatible query language for DynamoDB; batch operations supported |
 | **Exports to S3** | Point-in-time export to S3 in DynamoDB JSON or Ion format; no table read capacity consumed |
-| **DynamoDB Streams** | CDC log; 24-hour retention; power Lambda triggers, cross-region replication, audit trails |
+| **DynamoDB Streams** | CDC log; 24-hour retention; powers Lambda triggers, cross-region replication, audit trails. See stream details below. |
+| **Kinesis Data Streams for DynamoDB** | Alternative CDC output to a Kinesis stream; configurable retention (1–365 days), multiple consumers, enhanced fan-out |
 | **DAX** | Write-through cache; microsecond reads; cluster-based (multi-node for HA) |
 | **Global Tables** | Multi-active multi-region; last-writer-wins conflict resolution; requires on-demand or auto-scaling |
 | **Point-in-time Recovery (PITR)** | Restore table to any second in the last 35 days; no performance impact |
 | **Encryption at rest** | Default; choose AWS-owned key, AWS managed key, or CMK |
 | **Fine-grained access control** | IAM policies with `dynamodb:LeadingKeys` condition to restrict access to own partition key items |
+
+### DynamoDB Streams
+
+**Stream view types** — set at stream enable time; cannot change without disabling/re-enabling:
+
+| View type | Data captured | Use case |
+|---|---|---|
+| `KEYS_ONLY` | Primary key only | Detect which items changed; lowest stream volume |
+| `NEW_IMAGE` | Full item after change | Downstream sync of current state |
+| `OLD_IMAGE` | Full item before change | Audit what was deleted or overwritten |
+| `NEW_AND_OLD_IMAGES` | Both before and after | Diff computation, audit trails, error recovery |
+
+**Stream record structure:**
+```
+eventID          — unique identifier for this stream record
+eventName        — INSERT | MODIFY | REMOVE
+eventSource      — "aws:dynamodb"
+awsRegion        — region where the change occurred
+dynamodb:
+  ApproximateCreationDateTime
+  Keys             — primary key attributes
+  NewImage         — item after change (if view type includes it)
+  OldImage         — item before change (if view type includes it)
+  SequenceNumber   — ordering within the shard (21–40 chars)
+  SizeBytes
+  StreamViewType
+eventSourceARN   — stream ARN
+userIdentity     — present ONLY on TTL-triggered REMOVE events
+```
+
+**TTL deletions:** TTL-expired items appear in the stream as `eventName: REMOVE` with a `userIdentity` field:
+```json
+"userIdentity": { "type": "Service", "principalId": "dynamodb.amazonaws.com" }
+```
+Regular user-initiated deletes have no `userIdentity`. In Global Tables, `userIdentity` only appears in the region where TTL ran — not in replicated regions.
+
+**Lambda ESM error handling** (bisect-on-error, MaximumRetryAttempts, MaximumRecordAgeInSeconds, shard blocking, on-failure destinations): see [lambda-error-handling-capabilities.md](../../compute/lambda-error-handling-capabilities.md).
+
+### DynamoDB Streams vs Kinesis Data Streams for DynamoDB
+
+| | DynamoDB Streams | Kinesis Data Streams for DynamoDB |
+|---|---|---|
+| Retention | 24 hours | 1–365 days (configurable) |
+| Max simultaneous readers per shard | 2 | 20 (enhanced fan-out, each with 2 MB/s dedicated) |
+| Ordering guarantee | Per-item ordering guaranteed | At-least-once; may appear out of insertion order |
+| Duplicate records | Exactly-once per modification | At-least-once |
+| API | DynamoDB Streams API | Standard Kinesis API (KCL, Lambda, Firehose, Flink) |
+| Cost | Free reads with Lambda; included in free tier | Kinesis pricing + DynamoDB change capture units |
+| Best for | Lambda triggers, 24h window sufficient | >24h replay, multiple independent consumers, Firehose/Flink |
 
 ### When to Use DynamoDB
 

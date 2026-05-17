@@ -266,8 +266,80 @@ Metadata:
 | Visibility | Who Can See | How to Set |
 |---|---|---|
 | **Private** | Only the publishing account | Default |
-| **Shared** | Specific AWS account IDs | Resource-based policy granting specific principals |
+| **Shared (account)** | Specific AWS account IDs | Resource-based policy granting specific account principals |
+| **Shared (org)** | All accounts in an AWS Organization | Resource-based policy with `PrincipalOrgIDs`; must include `UnshareApplication` action |
 | **Public** | All AWS accounts | Resource-based policy granting `*` principal |
+
+**Cross-region behavior**: Public apps have deployment artifacts automatically copied to destination-region S3 buckets by SAR; private/shared apps are only available in the region where created.
+
+**Stack name prefix**: SAR automatically prepends `serverlessrepo-` to the stack name at deploy time. Pass the base name (without prefix) when creating the change set; the deployed stack will be named `serverlessrepo-<name>`.
+
+### Publishing Restrictions (Hard Gates)
+
+SAR blocks publication (not just warns) for applications that:
+- Attach `AWSLambda_FullAccess` managed policy to Lambda functions
+- Grant `iam:AttachRolePolicy`, `iam:PutRolePolicy`, or `iam:*` on `Resource: "*"` in inline policies
+
+Applications requiring `CAPABILITY_IAM`, `CAPABILITY_NAMED_IAM`, `CAPABILITY_RESOURCE_POLICY`, or `CAPABILITY_AUTO_EXPAND` are **hidden from public search results by default**; consumers must enable "Show apps that create custom IAM roles or resource policies" to find them.
+
+### CAPABILITY_RESOURCE_POLICY Triggers
+
+Resources that cause `CAPABILITY_RESOURCE_POLICY` to be required: `AWS::Lambda::LayerVersionPermission`, `AWS::Lambda::Permission`, `AWS::Events::EventBusPolicy`, `AWS::IAM::Policy`, `AWS::ApplicationAutoScaling::ScalingPolicy`, `AWS::S3::BucketPolicy`, `AWS::SQS::QueuePolicy`, `AWS::SNS::TopicPolicy`.
+
+### IAM Permissions
+
+**Publisher role minimum permissions**:
+```json
+"serverlessrepo:ListApplications"         → Resource: *
+"serverlessrepo:CreateApplication"        → Resource: *
+"serverlessrepo:CreateApplicationVersion" → Resource: arn:...:applications/<name>
+"serverlessrepo:GetApplication"           → Resource: arn:...:applications/<name>
+"serverlessrepo:UpdateApplication"        → Resource: arn:...:applications/<name>
+"serverlessrepo:DeleteApplication"        → Resource: arn:...:applications/<name>
+"serverlessrepo:ListApplicationVersions"  → Resource: arn:...:applications/<name>
+"serverlessrepo:PutApplicationPolicy"     → Resource: arn:...:applications/<name>
+"serverlessrepo:GetApplicationPolicy"     → Resource: arn:...:applications/<name>
+```
+
+**Consumer role minimum permissions**:
+```json
+"serverlessrepo:SearchApplications"            → Resource: *
+"serverlessrepo:GetApplication"                → Resource: *
+"serverlessrepo:ListApplicationVersions"       → Resource: *
+"serverlessrepo:ListApplicationDependencies"   → Resource: *
+"serverlessrepo:CreateCloudFormationChangeSet" → Resource: arn:...:applications/<name>
+"serverlessrepo:CreateCloudFormationTemplate"  → Resource: arn:...:applications/<name>
+// Plus: cloudformation:CreateChangeSet, cloudformation:ExecuteChangeSet, cloudformation:DescribeStacks
+```
+
+**Condition key**: `serverlessrepo:applicationType` with values `public` or `private`. Use in SCPs to block deployment of all public SAR apps org-wide.
+
+**IAM actions vs. application policy actions**: Two separate permission systems.
+- *IAM identity-based actions* (`serverlessrepo:*`): control what users/roles in your account can do
+- *Application policy actions* (set via `put-application-policy`): `GetApplication`, `CreateCloudFormationChangeSet`, `CreateCloudFormationTemplate`, `ListApplicationVersions`, `ListApplicationDependencies`, `SearchApplications`, `Deploy` (shorthand for all consumer actions), `UnshareApplication`
+
+### Required S3 Bucket Policy for Publishing
+
+SAR must be able to read packaged artifacts from the S3 bucket. Add to the bucket policy (the `aws:SourceAccount` condition prevents confused-deputy attacks):
+```json
+{
+  "Effect": "Allow",
+  "Principal": { "Service": "serverlessrepo.amazonaws.com" },
+  "Action": "s3:GetObject",
+  "Resource": "arn:aws:s3:::<bucket-name>/*",
+  "Condition": {
+    "StringEquals": { "aws:SourceAccount": "<publisher-account-id>" }
+  }
+}
+```
+
+### Organization Sharing
+
+Two mechanisms for sharing within an AWS Organization:
+1. **Org-wide**: `put-application-policy` with `Principals=*` and `PrincipalOrgIDs=<org-id>` — shares with all accounts in the org; must include `UnshareApplication` in the actions list
+2. **Org-scoped account list**: `put-application-policy` with specific account IDs and `PrincipalOrgIDs=<org-id>` — shares only with listed accounts *within* the org
+
+**`unshare-application` is one-way**: Once called from the management account, the app **cannot be re-shared with that org**. Distinct from removing a policy statement (which is reversible).
 
 ### Key Features
 
@@ -275,10 +347,13 @@ Metadata:
 - **Nested applications**: Compose complex architectures by nesting SAR apps inside SAM templates; requires `CAPABILITY_AUTO_EXPAND`
 - **CloudFormation integration**: Each deployment creates a standard CloudFormation stack; full lifecycle management, drift detection, and rollback
 - **AWS-published apps**: AWS provides reference apps for common patterns (S3 trigger, DynamoDB stream processor, Lex chatbot, etc.)
-- **Private app sharing**: Share across accounts in an AWS Organization without making apps public
+- **Lambda Layer distribution**: Wrap a `AWS::Serverless::LayerVersion` in a SAR app; consumers deploy the app, creating a local copy of the layer in their account — avoids sharing a global layer ARN
+- **Verified author badge**: Displayed on all apps from an account after submitting name, account ID, and public profile link to `serverlessrepo-verified-author@amazon.com`
 
 ### Use Case Patterns
 
 - **Platform team golden patterns**: Publish approved Lambda deployment patterns (logging, tracing, error handling) to an internal SAR catalog; dev teams deploy without copying boilerplate
 - **ISV distribution**: Publish a SaaS integration as a SAR app; customers deploy in one click without seeing source code
 - **Nested composition**: Build a data pipeline by composing three SAR apps (ingest → transform → load) as nested applications in a parent SAM template
+- **Layer distribution**: Package a shared Lambda Layer in SAR; consumer accounts get a local copy on deploy without needing a cross-account layer ARN
+- **Blocking public apps via SCP**: Use `serverlessrepo:applicationType: private` condition to allow only internally shared apps to be deployed in an org

@@ -107,6 +107,141 @@ aws xray put-encryption-config \
 
 # Set back to AWS managed encryption
 aws xray put-encryption-config --type NONE
+
+# --- Direct Segment Submission ---
+# Submit segment documents directly to X-Ray API (no daemon required)
+# Use for testing, custom integrations, batch pipelines, or short-lived scripts
+aws xray put-trace-segments \
+  --trace-segment-documents '[{
+    "trace_id": "1-5960082b-ab52431b496add878434aa25",
+    "id": "6226467e3f845502",
+    "name": "test.example.com",
+    "start_time": 1498082657.37,
+    "end_time": 1498082695.40
+  }]'
+# Max 50 documents per call; segment docs must match X-Ray segment schema JSON
+```
+
+**Daemon vs. `put-trace-segments` comparison:**
+
+| | Daemon | `put-trace-segments` |
+|---|---|---|
+| Transport | UDP 2000 (local) | HTTPS to X-Ray API |
+| Batching | Automatic | Caller handles |
+| Auth | Instance/task role | AWS CLI credentials |
+| UDP header required | Yes (`{"format":"json","version":1}\n`) | No |
+| Typical use | SDK instrumentation | Custom/test ingestion |
+
+```bash
+# --- Filter Expression Examples ---
+# Traces with faults taking >5s
+aws xray get-trace-summaries \
+  --start-time 2024-01-01T00:00:00Z \
+  --end-time 2024-01-01T01:00:00Z \
+  --filter-expression 'fault AND responsetime > 5'
+
+# Errors inside a specific service
+aws xray get-trace-summaries \
+  --start-time 2024-01-01T00:00:00Z \
+  --end-time 2024-01-01T01:00:00Z \
+  --filter-expression 'service("payments") { error }'
+
+# Annotation-based filtering (indexed key-value pairs)
+aws xray get-trace-summaries \
+  --start-time 2024-01-01T00:00:00Z \
+  --end-time 2024-01-01T01:00:00Z \
+  --filter-expression 'annotation.version = "2.0" AND http.status = 500'
+
+# Edge-level throttle detection
+aws xray get-trace-summaries \
+  --start-time 2024-01-01T00:00:00Z \
+  --end-time 2024-01-01T01:00:00Z \
+  --filter-expression 'edge("frontend", "api") { throttle }'
+```
+
+---
+
+## Application Signals
+
+```bash
+# --- Services ---
+aws application-signals list-services \
+  --start-time 2024-01-01T00:00:00Z \
+  --end-time 2024-01-01T01:00:00Z
+
+aws application-signals get-service \
+  --start-time 2024-01-01T00:00:00Z \
+  --end-time 2024-01-01T01:00:00Z \
+  --key-attributes '{"Type":"Service","Name":"checkout"}'
+
+# --- Service Level Objectives ---
+aws application-signals list-service-level-objectives
+
+aws application-signals create-service-level-objective \
+  --name "checkout-availability" \
+  --sli '{
+    "SliMetric": {
+      "KeyAttributes": {"Type": "Service", "Name": "checkout"},
+      "OperationName": "POST /checkout",
+      "MetricType": "AVAILABILITY"
+    },
+    "MetricThreshold": 99.9,
+    "ComparisonOperator": "GreaterThanOrEqualTo"
+  }' \
+  --goal '{
+    "Interval": {
+      "RollingInterval": {"DurationUnit": "DAY", "Duration": 30}
+    },
+    "AttainmentGoal": 99.9,
+    "WarningThreshold": 99.5
+  }'
+
+aws application-signals update-service-level-objective \
+  --id slo-id-here \
+  --goal '{"AttainmentGoal": 99.95}'
+
+aws application-signals delete-service-level-objective --id slo-id-here
+
+# Get SLO budget burn report for multiple SLOs
+aws application-signals batch-get-service-level-objective-budget-report \
+  --timestamp 2024-01-31T00:00:00Z \
+  --slo-ids '["slo-id-1", "slo-id-2"]'
+```
+
+---
+
+## Step Functions (X-Ray tracing)
+
+```bash
+# Enable X-Ray tracing on a new state machine
+aws stepfunctions create-state-machine \
+  --name my-workflow \
+  --definition file://definition.json \
+  --role-arn arn:aws:iam::123456789012:role/StepFunctionsRole \
+  --tracing-configuration enabled=true
+
+# Enable X-Ray tracing on an existing state machine
+aws stepfunctions update-state-machine \
+  --state-machine-arn arn:aws:states:us-east-1:123456789012:stateMachine:my-workflow \
+  --tracing-configuration enabled=true
+```
+
+---
+
+## API Gateway (X-Ray tracing)
+
+```bash
+# Enable active tracing on a REST API stage (REST APIs only)
+aws apigateway update-stage \
+  --rest-api-id abc123 \
+  --stage-name prod \
+  --patch-operations op=replace,path=/tracingEnabled,value=true
+
+# Verify tracing is enabled
+aws apigateway get-stage \
+  --rest-api-id abc123 \
+  --stage-name prod \
+  --query 'tracingEnabled'
 ```
 
 ---

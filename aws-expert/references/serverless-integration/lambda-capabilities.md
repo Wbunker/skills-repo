@@ -140,16 +140,18 @@ Available for Java 11+, Python 3.12+, .NET 8+. Not compatible with provisioned c
 
 ### Lambda@Edge vs CloudFront Functions
 
+For full Lambda@Edge details (event structures, limits, restrictions, code patterns), see [../compute/lambda-edge-capabilities.md](../compute/lambda-edge-capabilities.md).
+
 | Feature | Lambda@Edge | CloudFront Functions |
 |---|---|---|
 | **Runtime** | Node.js, Python | JavaScript (ES5.1+) |
 | **Trigger points** | Viewer request/response, Origin request/response | Viewer request/response only |
-| **Max execution time** | 5 s (viewer), 30 s (origin) | 1 ms |
-| **Memory** | 128 MB – 10 GB | 2 MB |
+| **Max execution time** | 30 seconds | 1 ms |
+| **Memory** | Up to 10,240 MB | 2 MB |
 | **Network access** | Yes | No |
-| **File system access** | No | No |
+| **Request body access** | Yes (Include Body option) | No |
 | **Pricing** | Per request + duration | Per request (sub-millisecond pricing) |
-| **Use case** | Complex logic, auth, A/B testing, origin selection | URL rewrites, header manipulation, simple redirects |
+| **Use case** | Complex logic, auth, A/B testing, origin selection, network calls | URL rewrites, header manipulation, simple redirects, cache-key normalization |
 
 ### VPC Access
 

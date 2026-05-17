@@ -95,16 +95,26 @@ aws lambda create-alias \
   --function-version 3 \
   --description "Production alias"
 
-# Weighted alias for canary deployment (10% to v4)
+# Weighted alias for canary deployment (10% to v4, 90% to v3)
 aws lambda update-alias \
   --function-name my-api-handler \
   --name prod \
   --function-version 3 \
   --routing-config '{"AdditionalVersionWeights":{"4":0.1}}'
 
+# Complete cutover: set v4 as primary and clear weights
+aws lambda update-alias \
+  --function-name my-api-handler \
+  --name prod \
+  --function-version 4 \
+  --routing-config '{"AdditionalVersionWeights":{}}'
+
 aws lambda list-aliases --function-name my-api-handler
 aws lambda get-alias --function-name my-api-handler --name prod
 aws lambda delete-alias --function-name my-api-handler --name prod
+
+# Delete a specific published version (alias must be deleted first)
+aws lambda delete-function --function-name my-api-handler --qualifier 42
 
 # --- Concurrency ---
 # Reserve concurrency for a function (also caps maximum)
@@ -156,6 +166,54 @@ aws lambda add-layer-version-permission \
   --organization-id o-abc123def456
 
 aws lambda delete-layer-version --layer-name my-dependencies --version-number 1
+
+# --- CodeDeploy Traffic Shifting ---
+# Create a CodeDeploy deployment group for Lambda traffic shifting
+aws deploy create-deployment-group \
+  --application-name my-app \
+  --deployment-group-name my-function-dg \
+  --service-role-arn arn:aws:iam::123456789012:role/CodeDeployServiceRole \
+  --deployment-config-name CodeDeployDefault.LambdaLinear10PercentEvery2Minutes \
+  --deployment-style '{"deploymentType":"BLUE_GREEN","deploymentOption":"WITH_TRAFFIC_CONTROL"}' \
+  --alarm-configuration '{
+    "enabled": true,
+    "alarms": [{"name":"my-function-errors-alarm"}]
+  }' \
+  --auto-rollback-configuration '{
+    "enabled": true,
+    "events": ["DEPLOYMENT_FAILURE","DEPLOYMENT_STOP_ON_ALARM"]
+  }'
+
+# Create a deployment (CodeDeploy reads AppSpec from S3 or inline)
+aws deploy create-deployment \
+  --application-name my-app \
+  --deployment-group-name my-function-dg \
+  --revision '{"revisionType":"AppSpecContent","appSpecContent":{"content":"{\"version\":0.0,\"Resources\":[{\"myFunction\":{\"Type\":\"AWS::Lambda::Function\",\"Properties\":{\"Name\":\"my-api-handler\",\"Alias\":\"prod\",\"CurrentVersion\":\"3\",\"TargetVersion\":\"4\"}}}]}"}}'
+
+# Monitor a deployment
+aws deploy get-deployment --deployment-id d-ABC123DEF
+aws deploy list-deployments --deployment-group-name my-function-dg
+
+# Stop and roll back a deployment
+aws deploy stop-deployment --deployment-id d-ABC123DEF --auto-rollback-enabled
+
+# --- Lifecycle Hook Callback (inside hook Lambda function) ---
+# Hook functions receive {DeploymentId, LifecycleEventHookExecutionId}
+# and MUST call back within 1 hour or the deployment fails
+
+# JavaScript example (Node.js hook function):
+# const codedeploy = new AWS.CodeDeploy();
+# await codedeploy.putLifecycleEventHookExecutionStatus({
+#   deploymentId: event.DeploymentId,
+#   lifecycleEventHookExecutionId: event.LifecycleEventHookExecutionId,
+#   status: 'Succeeded'  // or 'Failed'
+# }).promise();
+
+# CLI equivalent (from a hook function's test/debug context)
+aws deploy put-lifecycle-event-hook-execution-status \
+  --deployment-id d-ABC123DEF \
+  --lifecycle-event-hook-execution-id hooks-abcdef123456 \
+  --status Succeeded
 
 # --- Event Source Mappings ---
 # SQS trigger
