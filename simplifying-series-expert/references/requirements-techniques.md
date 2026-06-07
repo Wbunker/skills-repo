@@ -34,6 +34,8 @@ How to write user stories, use cases, and story maps well, and how to convert am
 
 **Common mistakes:** writing UI/clicks instead of intent; decomposing into tiny sub-use-cases (drop to user stories instead); skipping the extensions (losing the main value); pitching above or below sea level.
 
+> For the full use-case deep dive — anatomy (actors, stakeholders, design scope), the extensions notation (`5a`/`5b`), goal levels, slicing a use case, and the eight writing techniques — see `use-cases-minibook.md` (Book 4).
+
 ## Story Maps
 **Definition (Jeff Patton, via Cockburn):** *a 2D card layout showing processes left-to-right* — a mix of use case and user stories on a wall.
 - **Columns = actors / user types** — each type of user gets their own column.
