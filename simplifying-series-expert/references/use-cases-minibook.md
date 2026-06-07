@@ -18,7 +18,7 @@ Cockburn's *The Mini-Book on Use Cases: All You Need, but Short!* (The Simplifyi
 
 ## What This Book Is and How It Differs
 A portable, example-driven introduction: get productive on use cases fast, skipping the jargon. It opens with examples, then minimal theory.
-- **vs *Writing Effective Use Cases* (Cockburn, 2000):** that book is theory-rich; this one opens with a dozen examples and minimizes theory.
+- **vs *Writing Effective Use Cases* (Cockburn, 2000):** that book is theory-rich; this one opens with a dozen examples and minimizes theory. For the full template, scope/goal-level theory, formats, and scaling, see `writing-effective-use-cases.md`.
 - **vs *Unifying User Stories, Use Cases, Story Maps* (Book 2):** that book positions use cases among three techniques; this one focuses on *what you need to begin writing and using use cases* in modern agile settings.
 - **New here:** **slicing use cases for incremental delivery** — a technique not in the earlier books. This is the bridge to Book 1 (*Slice the Problem, Grow the Solution*).
 
