@@ -53,7 +53,7 @@ Because design health shows up in *how components talk*, learn to recognize inte
 ## Applying It to Architectures
 Responsibility thinking explains popular architectures:
 - **MVC** — Model, View, Controller are an assignment of responsibilities (data/rules vs presentation vs coordination) with "no need to know" between them.
-- **Hexagonal architecture (Ports & Adapters)** — Cockburn's own pattern: the domain's job is business logic; it has "no need to know" about databases, UIs, or external systems, which sit behind ports/adapters. The hexagon *is* the bureaucracy principle applied at the architecture scale. (For depth, this is the subject of his separate *Hexagonal Architecture Explained*.)
+- **Hexagonal architecture (Ports & Adapters)** — Cockburn's own pattern: the domain's job is business logic; it has "no need to know" about databases, UIs, or external systems, which sit behind ports/adapters. The hexagon *is* the bureaucracy principle applied at the architecture scale. (For the full treatment — ports, adapters, configurator, testing through ports — see `hexagonal-architecture.md`.)
 
 Use the same responsibility/knowledge/communication lens to judge any architecture, not just these.
 
