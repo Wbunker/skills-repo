@@ -36,6 +36,7 @@ Reference hub for Moonshot AI's Kimi platform. Use the decision matrix below, th
 | Migrate from OpenAI | Change base_url + model ID | [integrations.md](references/integrations.md) |
 | Use Kimi in Claude Code via direct API | Custom base_url config | [integrations.md](references/integrations.md) |
 | Use Kimi in Claude Code via Ollama Cloud | `ollama launch claude --model kimi-k2.6:cloud` | [integrations.md](references/integrations.md) |
+| Use Kimi as a cheap delegate/worker for Claude Code (token saving) | Worker CLI on `PATH` + CLAUDE.md routing | [integrations.md](references/integrations.md) |
 | Choose the right model | Model families + pricing | [models.md](references/models.md) |
 
 ---

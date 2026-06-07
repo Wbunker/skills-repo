@@ -6,6 +6,7 @@
 - [GitHub Actions](#github-actions)
 - [GitLab CI/CD](#gitlab-cicd)
 - [Other Integrations](#other-integrations)
+- [Delegating cheap work to a worker model (token saving)](#delegating-cheap-work-to-a-worker-model-token-saving)
 
 ---
 
@@ -126,3 +127,31 @@ Similar to GitHub Actions integration. Claude Code can be triggered from GitLab 
 Via MCP registry and plugin system, Claude Code connects to: Jira, Google Drive, Notion, databases, and hundreds of third-party services.
 
 **Scheduled / Remote agents (Routines):** Run on Anthropic-managed infrastructure. Keep running when your computer is off. Trigger on schedule (cron), API calls, or GitHub events. Create from web UI, Desktop app, or `/schedule` CLI command.
+
+---
+
+## Delegating cheap work to a worker model (token saving)
+
+A pattern for stretching a Claude plan's token budget: keep Claude as the reasoner and offload its **bulk I/O** to a cheaper long-context model. Claude Code's **Bash tool runs any command on `PATH`**, so Claude can shell out to a small CLI that calls a cheap OpenAI-compatible model (Kimi, DeepSeek, Qwen, Gemini Flash, …) — **no MCP server or plugin required**, just a script in `~/bin/` and a routing rule.
+
+**The boundary that makes it pay off — Claude = thinking, worker = I/O:**
+
+| Delegate to the worker | Keep on Claude |
+|---|---|
+| Reading many/large files to answer one question → summary | Architecture & design decisions |
+| Generating boilerplate (tests, config, docstrings) | Debugging, race conditions, numerical stability |
+| Summarizing a session transcript into doc updates | Anything safety-critical or needing careful reasoning |
+| First-draft repetitive text Claude then patches | Edits that need exact line numbers |
+
+Typical savings: reading ~5 files (~8,000 tokens) becomes a ~400-token summary Claude reads; a doc update drops from ~5,000 tokens to ~200. The worker reads the files/transcript in full and returns a compact result; Claude spends tokens only on the reasoning and the surgical edits.
+
+**Three tools cover most cases:** a *reader* (`--paths … --question …` → summary), a *writer* (`--spec … --context … --target …` → a generated file Claude reviews), and an *extract-chat* that strips a Claude Code JSONL transcript (`~/.claude/projects/<project>/*.jsonl`) down to clean conversation text to feed the reader for a doc pipeline.
+
+**Routing is the key step — it lives in `CLAUDE.md` or a `.claude/rules/` file**, because Claude won't use the tools unless told when to. Include an explicit *"When NOT to delegate"* list (tasks under ~2,000 tokens where delegation overhead isn't worth it; architecture, debugging, safety-critical code; anything needing exact line numbers) — without it, Claude over-routes and you lose its reasoning where you need it. See [claude-memory.md](claude-memory.md) and [claude-rules.md](claude-rules.md) for where these instructions load.
+
+**Gotchas:**
+- **Worker "thinking" models burn the output budget silently** — set the worker's max output tokens high enough to cover internal reasoning *plus* the answer (a too-low cap returns an empty response, no error), or disable the worker's thinking for pure I/O.
+- **Order for prefix-cache hits:** stable content (the file corpus) first, the varying question last, so repeated calls over the same files reuse the cached prefix at a discount (both Moonshot and Anthropic do prefix caching).
+- **Never delegate reasoning** — cheap workers surface obvious issues but miss subtle bugs.
+
+For a concrete worker implementation (CLI script, model choice, thinking-budget specifics), see the **kimi-code-expert** skill → `references/integrations.md`.

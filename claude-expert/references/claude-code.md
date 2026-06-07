@@ -4,10 +4,11 @@
 - [Surfaces](#surfaces)
 - [CLI Usage](#cli-usage)
 - [Key CLI Flags](#key-cli-flags)
-- [CLAUDE.md — Persistent Instructions](#claudemd--persistent-instructions)
+- [CLAUDE.md, Rules & Memory](#claudemd-rules--memory)
 - [Settings](#settings)
 - [Hooks](#hooks)
 - [Subagents](#subagents)
+- [Dynamic Workflows](#dynamic-workflows)
 - [MCP Configuration](#mcp-configuration)
 - [Plugins](#plugins)
 - [Background Tasks](#background-tasks)
@@ -81,17 +82,18 @@ claude /bashes                  # interactive menu of background shells
 
 ---
 
-## CLAUDE.md — Persistent Instructions
+## CLAUDE.md, Rules & Memory
 
-Claude reads `CLAUDE.md` at session start as always-on instructions.
+Two systems carry knowledge across sessions, both loaded at session start: **CLAUDE.md / `.claude/rules/`** (instructions you write) and **auto memory** (notes Claude writes itself). Both are *advisory context, not enforced* — use hooks for anything that must happen every time.
 
-Locations (all loaded, in order):
-- `~/.claude/CLAUDE.md` — user-level, applies to all projects
-- `<project-root>/CLAUDE.md` — project-level (committable)
-- `.claude/CLAUDE.md` — alternative project location
-- `CLAUDE.local.md` — personal overrides, gitignored
+CLAUDE.md locations (concatenated, broadest → narrowest; narrowest read last):
+- Managed policy (IT-deployed, can't be excluded) → `~/.claude/CLAUDE.md` (user) → `./CLAUDE.md` or `./.claude/CLAUDE.md` (project) → `./CLAUDE.local.md` (personal, gitignore it)
+- Ancestor-directory CLAUDE.md files load in full at launch; subdirectory ones load on demand.
 
-Auto-memory: Claude builds context automatically during sessions (build commands, patterns, etc.).
+Effective-instruction rules of thumb: keep it **under 200 lines** (bloat → ignored rules), be specific and verifiable, group with headers/bullets, add `IMPORTANT`/`YOU MUST` to tune adherence, and run `/init` to bootstrap. Move sometimes-relevant or path-specific content to **skills** or **`.claude/rules/`** (path-scoped). `#` / "remember…" saves to auto memory; "add to CLAUDE.md" edits CLAUDE.md; `/memory` lists and edits what's loaded.
+
+→ CLAUDE.md, `@` imports, auto memory, org/monorepo controls, troubleshooting: [claude-memory.md](claude-memory.md)
+→ The `.claude/rules/` directory (always-on + path-scoped rules): [claude-rules.md](claude-rules.md)
 
 ---
 
@@ -182,7 +184,17 @@ background: true                    # run in background
 isolation: worktree                 # isolated git worktree
 ```
 
-Subagents cannot spawn other subagents. For parallel communicating agents, use Agent Teams (`--teammate-mode`).
+Subagents cannot spawn other subagents. For parallel communicating agents, use Agent Teams (`--teammate-mode`). To orchestrate **tens to hundreds** of subagents from a rerunnable script (the plan lives in code, not the conversation), use [Dynamic Workflows](dynamic-workflows.md).
+
+---
+
+## Dynamic Workflows
+
+A JavaScript orchestration script Claude writes for a task and runs in the background, coordinating dozens–hundreds of subagents across phases with cross-checking/adversarial verification — intermediate results stay in script variables, so context holds only the final answer. Trigger with the `ultracode` keyword (single task), `/effort ultracode` (session-wide autonomous, `xhigh`-capable models only), or a saved/bundled command like `/deep-research`. Manage runs in the `/workflows` TUI; save a run's script (`s`) to `.claude/workflows/` or `~/.claude/workflows/` and it becomes `/<name>`. Caps: 16 concurrent / 1,000 total agents per run. Research preview, v2.1.154+.
+
+**Key surprise:** workflow subagents always run in `acceptEdits` mode regardless of your session's permission mode — file edits are auto-approved.
+
+→ Full reference (triggering, approval per permission mode, TUI keys, save/reuse + `args`, limits, permissions, cost control, disabling): [dynamic-workflows.md](dynamic-workflows.md)
 
 ---
 
@@ -307,6 +319,16 @@ Type `/` in any session to see all available commands. Commands marked **[cloud]
 | `/plan [description]` | Enter plan mode locally | None |
 | `/ultraplan <prompt>` | **[cloud]** Draft implementation plan in a web session; review in browser then execute remotely or pull to terminal | v2.1.91+, Claude.ai auth, GitHub repo |
 
+### Workflows (dynamic, multi-agent orchestration)
+
+| Command | What it does | Requirements |
+|---|---|---|
+| `/workflows` | List running/completed [dynamic workflows](dynamic-workflows.md); open the progress TUI to drill in, pause (`p`), stop (`x`), restart (`r`), or save (`s`) a run | v2.1.154+ |
+| `/deep-research <question>` | Bundled workflow: fans out web searches, cross-checks sources, votes on each claim, returns a cited report | WebSearch tool |
+| `/<saved-name> [args]` | Run a workflow you saved from `/workflows` (`s`) into `.claude/workflows/` (project) or `~/.claude/workflows/` (personal) | — |
+
+Trigger a one-off workflow with the `ultracode` keyword in a prompt, or `/effort ultracode` for session-wide autonomous orchestration. See [dynamic-workflows.md](dynamic-workflows.md).
+
 ### Session & Context
 
 | Command | What it does |
@@ -325,7 +347,7 @@ Type `/` in any session to see all available commands. Commands marked **[cloud]
 | Command | What it does | Notes |
 |---|---|---|
 | `/model [name]` | Switch model mid-session | Opens picker without argument |
-| `/effort [level]` | Set effort: `low` / `medium` / `high` / `xhigh` / `max` | `xhigh` is the current default across all plans; also settable via `--effort` flag |
+| `/effort [level]` | Set effort: `low` / `medium` / `high` / `xhigh` / `max` / `ultracode` | `xhigh` is the current default across all plans; also settable via `--effort` flag. `ultracode` = `xhigh` + automatic [dynamic-workflow](dynamic-workflows.md) orchestration (xhigh-capable models only) |
 | `/fast [on\|off]` | Toggle Fast mode for Opus (2.5× faster, higher cost) | Requires extra usage; $30/$150 per MTok input/output |
 
 ### Configuration & Permissions

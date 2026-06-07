@@ -89,6 +89,49 @@ ollama launch claude --model kimi-k2.6:cloud
 
 ---
 
+## Kimi as a cheap delegate for Claude Code (token saving)
+
+A different integration from the ones above: instead of *replacing* Claude with Kimi, keep Claude as the reasoner and offload its **bulk I/O** to Kimi to avoid burning the Claude plan's token budget. Claude Code's Bash tool runs any command on `PATH`, so Claude can shell out to a small CLI that calls Kimi — no MCP server or plugin needed.
+
+**Why Kimi fits the worker role:** OpenAI-compatible (swap `base_url`, reuse the `openai` package), long context (ingest many files in one call), cheap per token, and a thinking mode that still produces solid technical summaries. The boundary that makes it work: **Claude = thinking, Kimi = I/O.** Delegate reading many/large files, generating boilerplate (tests, config, docstrings), and summarizing a session transcript for doc updates; keep architecture, debugging, safety-critical, and exact-line edits on Claude.
+
+**Minimal worker CLI** (drop in `~/bin/`, on `PATH`):
+```python
+#!/usr/bin/env python3
+"""ask-kimi: pack files into a corpus and ask one question about them."""
+import argparse, os, pathlib
+from openai import OpenAI
+
+ap = argparse.ArgumentParser()
+ap.add_argument("--paths", nargs="+", required=True)
+ap.add_argument("--question", required=True)
+args = ap.parse_args()
+
+client = OpenAI(api_key=os.environ["MOONSHOT_API_KEY"], base_url="https://api.moonshot.ai/v1")
+corpus = "\n\n".join(f"<file path='{p}'>\n{pathlib.Path(p).read_text()}\n</file>" for p in args.paths)
+
+resp = client.chat.completions.create(
+    model="kimi-k2.6",
+    messages=[
+        {"role": "system", "content": "You are a precise code analyst."},
+        {"role": "user", "content": f"<corpus>\n{corpus}\n</corpus>"},  # stable prefix → cache hits
+        {"role": "user", "content": args.question},                      # only this varies
+    ],
+    max_completion_tokens=8192,   # cover thinking + answer; see gotcha below
+)
+print(resp.choices[0].message.content)
+```
+Claude then runs `ask-kimi --paths a.py b.py c.py --question "..."` and reads the ~300-word summary instead of the files (e.g. ~8,000 tokens of file reads → a ~400-token summary). A sibling `kimi-write --spec ... --context ... --target ...` generates a whole boilerplate file that Claude only reviews and patches.
+
+**Routing** lives in the project's `CLAUDE.md` (or a `.claude/rules/` file) with an explicit *"When NOT to delegate"* boundary, or Claude over-routes. See the Claude-side write-up: claude-expert → `references/integrations.md`.
+
+**Gotchas (worker-side):**
+- **Thinking burns the output budget silently.** `kimi-k2.6`/`k2.5` think by default; if `max_completion_tokens` is too low the reasoning consumes it and the visible answer comes back **empty** (no error). Budget ≥8,192 for reading, ≥16,000 for generation. (Or disable thinking with `extra_body={"thinking": {"type": "disabled"}}` for pure I/O.)
+- **Order for cache hits:** put the stable file corpus first and the varying question last. Repeated calls over the same files reuse the cached prefix — `usage.cached_tokens` reports the hit, billed at a steep discount.
+- **Don't delegate reasoning** — workers find surface issues but miss subtle bugs (thread-safety, numerical stability). Keep those on Claude.
+
+---
+
 ## Batch API
 
 Async job processing at 40% off real-time inference pricing.  

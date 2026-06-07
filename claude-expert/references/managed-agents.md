@@ -139,8 +139,11 @@ def get_or_create_agent(client, config, fresh=False):
 
 ## ant CLI (quick management)
 
+The `ant` CLI deploys and manages agents from the terminal without SDK code — the full
+agent → environment → session → events flow in four commands:
+
 ```bash
-# Install (macOS)
+# Install (macOS); see ant-cli.md for Linux/Go installers
 brew install anthropics/tap/ant
 
 # Create agent
@@ -151,6 +154,9 @@ ant beta:agents create --name "My Agent" --model '{id: claude-sonnet-4-6}' \
 ant beta:agents list
 ant beta:environments list
 ```
+
+→ Full CLI reference (auth, request building, output formats, the four-command deploy,
+messages/models): [ant-cli.md](ant-cli.md)
 
 ## Agent Configuration Fields
 
