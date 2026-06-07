@@ -68,6 +68,11 @@ Key derived signals from heartbeat:
 | [references/alternative-builds.md](references/alternative-builds.md) | 5 non-desk-pet project ideas: traffic light, token meter, e-ink display, approval puck, wearable band |
 | [references/security.md](references/security.md) | BLE bonding, LE Secure Connections, encryption requirements, path validation |
 
+## Related
+
+For programming and using the M5StickC PLUS / PLUS2 hardware itself (pinout, sensors, Arduino/UIFlow/
+MicroPython, and other project ideas) beyond this BLE buddy, see the `m5stickc-plus-expert` skill.
+
 ## Gotchas
 
 - The BLE API only works when Claude Desktop is in **developer mode** — not available in normal mode.
