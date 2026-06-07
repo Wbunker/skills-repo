@@ -49,10 +49,15 @@ claude -c                       # continue most recent conversation
 claude -r "<session-id>"        # resume session by ID or name
 claude update                   # update to latest
 claude auth login               # authenticate
-claude agents                   # list/manage subagents
+claude agents                   # open Agent View — dashboard of background sessions (v2.1.139+)
+claude --bg "<task>"            # dispatch a background session straight from the shell
+claude attach/logs/stop <id>    # manage a background session by ID
 claude mcp                      # manage MCP servers
 claude /bashes                  # interactive menu of background shells
 ```
+
+> **Agent View / background sessions** (run & monitor many parallel sessions from one screen) is a
+> sizable feature — see `agent-view.md`.
 
 ---
 
@@ -76,6 +81,7 @@ claude /bashes                  # interactive menu of background shells
 | `--channels` | Enable Channels (Telegram/Discord/etc.) |
 | `--dangerously-skip-permissions` | Bypass all approval prompts (use in sandboxed/scoped contexts only) |
 | `--bare` | Minimal mode (skip hooks/plugins/MCP) |
+| `--bg "task"` | Dispatch a background session (Agent View); also `--exec 'cmd'` for a shell job — see `agent-view.md` |
 | `--effort low\|medium\|high\|xhigh\|max` | Reasoning effort |
 | `--remote "task"` | Create new web session on claude.ai |
 | `--teleport` | Pull a web session into local terminal |
@@ -234,7 +240,11 @@ Prefer skills when in doubt. A skill is a markdown file you can read and audit. 
 
 ## Plugins
 
-Plugins (public beta) bundle MCPs, skills, hooks, and slash commands into a single installable package. The official Anthropic marketplace (`claude-plugins-official`) is available by default; third-party plugins are also supported.
+Plugins bundle MCPs, skills, hooks, agents, and slash commands into a single self-contained package. There are **two ways to load them**: (1) install from a **marketplace**, or (2) drop a plugin folder in a **skills directory** and have Claude Code auto-load it (no marketplace, v2.1.157+ — see below).
+
+### Marketplace install
+
+The official Anthropic marketplace (`claude-plugins-official`) is available by default; the community marketplace (`claude-community`, add via `/plugin marketplace add anthropics/claude-plugins-community`) and third-party marketplaces are also supported.
 
 ```bash
 /plugin                              # browse installed plugins and Discover tab
@@ -253,7 +263,48 @@ Browse the catalog at `claude.com/plugins`.
 > recommend automations for this project
 ```
 
-**Security note:** Plugins can load remote MCP servers and local software. Review what a third-party plugin installs before running it; official (`claude-plugins-official`) plugins pass Anthropic's publishing checks.
+### Skills-directory plugins (auto-load, no marketplace) — v2.1.157+
+
+Drop a plugin folder in a **skills directory** and Claude Code loads it on the next session — no marketplace, no install, not copied into a cache (discovered in place). A folder is treated as a plugin named **`<name>@skills-dir`** when it contains a `.claude-plugin/plugin.json` manifest:
+
+```
+~/.claude/skills/my-tool/          # personal scope (loads in every project)
+├── .claude-plugin/
+│   └── plugin.json                 # manifest — only `name` required; version/author/etc. optional
+├── skills/<name>/SKILL.md          # bundled skill(s) → invoked as /my-tool:<name>
+├── commands/  agents/  hooks/      # optional components, at PLUGIN ROOT
+└── .mcp.json                       #   (never put these inside .claude-plugin/)
+```
+
+Scaffold one with the new init command:
+
+```bash
+claude plugin init my-tool         # creates ~/.claude/skills/my-tool/ with plugin.json + starter SKILL.md
+```
+
+A skills directory can hold three different things — mind the distinction:
+
+| What you put there | What it becomes |
+|---|---|
+| `skills/foo/SKILL.md` with **no** manifest | a plain skill `/foo` (not a plugin) |
+| `skills/foo/.claude-plugin/plugin.json` | a plugin `foo@skills-dir` (can bundle skills, agents, hooks, MCP) |
+| `<plugin>/skills/bar/SKILL.md` | a skill `bar` packaged inside a plugin |
+
+**Scope & trust:**
+- `~/.claude/skills/` = **personal** — loads in every project, no restrictions.
+- `<cwd>/.claude/skills/` = **project** — checked into the repo for collaborators, but loads only after you accept the workspace **trust dialog**. Declared MCP servers still need per-server approval, LSP servers start only after trust, and background monitors don't load. Project `@skills-dir` plugins load only from the `.claude/skills/` of the directory you launched in — they do **not** walk up to the repo root like plain skills, so launch from the repo root (or run `/reload-plugins` after `cd`).
+
+**Edit / reload / remove:**
+- Editing a **`SKILL.md`** takes effect **immediately** in the session. Changes to other components (`hooks/`, `.mcp.json`, `agents/`, output styles) need **`/reload-plugins`** or a restart. *(Note: the command is `/reload-plugins`, not `/reload-skills`.)*
+- Remove by deleting the folder or `claude plugin disable my-tool@skills-dir` — there is no uninstall (nothing was installed).
+
+**Namespacing:** plugin skills are namespaced (`/my-tool:hello`) to avoid conflicts; standalone `.claude/` skills keep short names (`/hello`).
+
+**Local dev/testing without a skills dir:** `claude --plugin-dir ./my-plugin` (also accepts a `.zip`, v2.1.128+), or `claude --plugin-url <zip-url>` for a hosted archive; loads for that session only.
+
+**Auto-load vs marketplace:** use skills-dir auto-load for personal/team plugins you build and commit to a repo; use the **marketplace** (`/plugin install`) for community plugins that need dependency resolution, version management, and vetted MCP servers.
+
+**Security note:** Plugins can load remote MCP servers and local software. Review what a third-party plugin installs before running it; official (`claude-plugins-official`) plugins pass Anthropic's publishing checks. Project-scope `@skills-dir` plugins come from the repository, so they're gated behind the workspace trust dialog.
 
 ---
 
@@ -334,6 +385,8 @@ Trigger a one-off workflow with the `ultracode` keyword in a prompt, or `/effort
 | Command | What it does |
 |---|---|
 | `/clear` | New conversation, empty context (previous session available via `/resume`) |
+| `/background` (alias `/bg`) | Move the current session to the background (Agent View); optional trailing instruction — see `agent-view.md` |
+| `/stop` | End the current background session from inside it (`/exit` and detach shortcuts leave it running) |
 | `/compact [instructions]` | Summarize conversation to free context; pass focus instructions optionally |
 | `/context` | Visualize context usage as colored grid with optimization suggestions |
 | `/resume [session]` | Resume session by ID/name; opens picker without argument |
@@ -386,6 +439,7 @@ Trigger a one-off workflow with the `ultracode` keyword in a prompt, or `/effort
 | Command | What it does |
 |---|---|
 | `/plugin` | Browse, install, update, and remove plugins (MCPs + skills + hooks bundled) |
+| `/reload-plugins` | Re-scan & reload plugins/skills/agents/hooks without restarting (use after editing a skills-directory plugin's non-SKILL.md components) |
 | `/mcp` | Manage MCP server connections and OAuth |
 | `/ide` | Manage IDE integrations |
 | `/install-github-app` | Set up Claude GitHub Actions for a repo |

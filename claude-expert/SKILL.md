@@ -25,6 +25,7 @@ Reference hub for all Claude products and APIs. Use the decision matrix below to
 | Build a product with Claude | Messages API + Python/TS SDK | [api.md](references/api.md) |
 | Agentic coding in terminal | Claude Code CLI | [claude-code.md](references/claude-code.md) |
 | Agentic coding in editor | VS Code / JetBrains extension | [claude-code.md](references/claude-code.md) |
+| Run & monitor many parallel Claude Code sessions from one screen; background a session; peek/reply/dispatch | Agent View + background sessions (`claude agents`, `/bg`, `claude --bg`) | [agent-view.md](references/agent-view.md) |
 | Write effective project rules / persistent instructions / memory for Claude Code | CLAUDE.md, auto memory | [claude-memory.md](references/claude-memory.md) |
 | Scope instructions to file types/areas with the rules directory | `.claude/rules/` (path-scoped rules) | [claude-rules.md](references/claude-rules.md) |
 | Orchestrate many subagents at scale from a rerunnable script (audits, large migrations, cross-checked research) | Dynamic Workflows | [dynamic-workflows.md](references/dynamic-workflows.md) |
@@ -124,7 +125,8 @@ MCP (Model Context Protocol) is the open standard for connecting AI applications
 | File | Contents |
 |---|---|
 | [api.md](references/api.md) | Messages API, SDKs, tool use, streaming, caching, batch, Files API |
-| [claude-code.md](references/claude-code.md) | CLI flags, IDE extensions, hooks, settings, subagents, MCP config, built-in slash commands (`/review`, `/ultrareview`, `/ultraplan`, etc.), prompting tips (`ultrathink`, evidence rule) |
+| [claude-code.md](references/claude-code.md) | CLI flags, IDE extensions, hooks, settings, subagents, MCP config, plugins (marketplace + skills-directory auto-load, `claude plugin init`, `/reload-plugins`), built-in slash commands (`/review`, `/ultrareview`, `/ultraplan`, etc.), prompting tips (`ultrathink`, evidence rule) |
+| [agent-view.md](references/agent-view.md) | Agent View & background sessions (v2.1.139+): `claude agents` dashboard, dispatch via `/bg`/`/background`/`claude --bg`, session state icons (`✻`/`∙`/`✢`), peek & reply, attach/detach, keyboard shortcuts, filtering (`a:`/`s:`/`#PR`), worktree isolation (`.claude/worktrees/`, `worktree.bgIsolation`), the supervisor process + `claude respawn --all`, shell mgmt (`claude attach/logs/stop/rm`), permission/model inheritance |
 | [claude-memory.md](references/claude-memory.md) | CLAUDE.md locations/load order, writing effective instructions (include/exclude, 200-line limit, `IMPORTANT`/`YOU MUST`), `@` imports, auto memory, `/memory`+`/init`+`#`, hooks-vs-rules enforcement, org/monorepo controls |
 | [claude-rules.md](references/claude-rules.md) | `.claude/rules/` directory: always-on vs path-scoped rules, `paths` glob table + trigger semantics, precedence, symlink sharing, user-level rules, rules-vs-CLAUDE.md-vs-skills-vs-hooks |
 | [dynamic-workflows.md](references/dynamic-workflows.md) | Dynamic workflows: when-to-use vs subagents/skills/teams, triggering (`ultracode`, `/effort ultracode`, `/deep-research`), approval per permission mode, `/workflows` TUI keys, save/reuse + `args`, 16/1000 agent caps, acceptEdits permission behavior, cost control, disabling; **script API** (`meta`, `agent`/`pipeline`/`parallel`/`phase`/`log`, schemas, `budget`, pipeline-vs-parallel rule, resume) |
