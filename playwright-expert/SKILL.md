@@ -1,6 +1,6 @@
 ---
 name: playwright-expert
-description: Playwright end-to-end testing expertise covering test authoring (locators, actions, web-first assertions, Page Object Model), the fixtures system (custom/test-scoped/worker-scoped/auto/option fixtures, dependencies, boxing), authentication that is saved once and reused across tests (storageState, setup projects, multi-role, per-worker auth), running and debugging tests (UI mode, Inspector, codegen, trace viewer), and the Playwright agent-cli (playwright-cli) for driving a browser from the shell including the "save login, skip it next time" workflow. Use when writing or debugging Playwright tests, choosing locators, structuring test suites with fixtures, persisting/reusing logins across tests or CLI sessions, setting up playwright.config.ts, or automating a browser with the agent-cli.
+description: Playwright end-to-end testing expertise covering test authoring (locators, actions, web-first assertions, Page Object Model), the fixtures system (custom/test-scoped/worker-scoped/auto/option fixtures, dependencies, boxing), authentication that is saved once and reused across tests (storageState, setup projects, multi-role, per-worker auth), running and debugging tests (UI mode, Inspector, codegen, trace viewer), BDD/Cucumber/Gherkin testing via playwright-bdd (defineBddConfig, bddgen, .feature files, step definitions), and the Playwright agent-cli (playwright-cli) for driving a browser from the shell including the "save login, skip it next time" workflow. Use when writing or debugging Playwright tests, choosing locators, structuring test suites with fixtures, persisting/reusing logins across tests or CLI sessions, setting up playwright.config.ts, writing Gherkin/Cucumber BDD tests with playwright-bdd, or automating a browser with the agent-cli.
 ---
 
 # Playwright Expert
@@ -62,6 +62,7 @@ Fixtures are the core abstraction for setup/teardown; see [fixtures.md](referenc
 | Visual testing — screenshots, snapshot diffs, video recording | [visual-comparisons.md](references/visual-comparisons.md) |
 | Accessibility testing (`@axe-core/playwright`) | [accessibility.md](references/accessibility.md) |
 | Component testing (experimental) | [components.md](references/components.md) |
+| BDD / Cucumber / Gherkin on the Playwright runner (`playwright-bdd`, `bddgen`) | [playwright-bdd.md](references/playwright-bdd.md) |
 | Chrome extension testing (persistent context) | [chrome-extensions.md](references/chrome-extensions.md) |
 | AI Test Agents — planner/generator/healer (`init-agents --loop=claude`) | [test-agents.md](references/test-agents.md) |
 
