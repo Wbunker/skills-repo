@@ -1,5 +1,11 @@
 # Database — Reference Index
 
+**Cross-cutting guides** (load directly, regardless of source DB):
+
+| Guide | Load when... |
+|---|---|
+| [azure-function-to-supabase.md](database/azure-function-to-supabase.md) | Building an Azure Function that reads from an Azure database (SQL / PostgreSQL / Cosmos) and copies/syncs data to Supabase (external Postgres) — serverless connection management, Supavisor pooler, incremental/CDC sync, upsert/idempotency, batching, static outbound IP, error handling |
+
 | Namespace | Capabilities | CLI | Load when... |
 |---|---|---|---|
 | Azure SQL | [azure-sql-capabilities.md](database/azure-sql-capabilities.md) | [azure-sql-cli.md](database/azure-sql-cli.md) | Azure SQL Database (single DB, elastic pools, serverless), SQL Managed Instance, Hyperscale, Business Critical, General Purpose tiers |

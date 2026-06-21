@@ -12,6 +12,7 @@
 - [MCP Configuration](#mcp-configuration)
 - [Plugins](#plugins)
 - [Background Tasks](#background-tasks)
+- [Agent View](#agent-view)
 - [Built-in Slash Commands](#built-in-slash-commands)
 - [Mobile Push Notifications](#mobile-push-notifications)
 - [Gotchas](#gotchas)
@@ -321,6 +322,84 @@ Run commands without blocking the session:
 Common use: start a dev server in background, then have Claude read its logs and fix errors.
 
 **Known issues:** Token exhaustion after `KillShell` (issues #11716, #12302); stale "running" status (#13091, #14049).
+
+---
+
+## Agent View
+
+Unified terminal dashboard for managing multiple parallel Claude Code sessions. Available in v2.1.139+ (Pro, Max, Team, Enterprise, API). Research preview.
+
+**Open:**
+- `claude agents` — open from any shell
+- `←` from an active session — background it and open agent view
+
+**Session state icons:**
+
+| Icon | Meaning |
+|---|---|
+| Animated | Actively working |
+| Yellow | Needs input (permission or answer) |
+| Dimmed | Idle / waiting |
+| Green | Finished successfully |
+| Red | Ended with error |
+| Grey | Stopped manually |
+| `✻` shape | Process alive — reply immediately |
+| `∙` shape | Process exited — Claude restarts from where it left off |
+
+Sessions group by state: **needs input → working → completed**.
+
+**Navigation:**
+
+| Key | Action |
+|---|---|
+| `↑` / `↓` | Move between sessions |
+| `Enter` or `→` | Attach (full conversation) |
+| `←` on empty prompt | Detach, return to agent view |
+| `Space` | Open peek panel (see/reply without attaching) |
+| `Esc` | Exit agent view (sessions keep running) |
+| `Shift+Enter` | Dispatch and immediately attach |
+
+**Peek panel** (`Space`): type a reply and press `Enter` to respond without leaving agent view; press number keys for multiple-choice prompts; `↑`/`↓` to scan other sessions while open.
+
+**Dispatching sessions:**
+```bash
+# From agent view: type prompt in bottom input field, press Enter
+# From inside a session:
+/bg                                          # background current session
+/bg run the test suite and fix any failures  # background with a final instruction
+# From shell:
+claude --bg "investigate flaky auth test"    # prints session ID + management commands
+```
+
+**Shell management commands** (printed on background):
+```bash
+claude agents             # list sessions
+claude attach <id>        # open in this terminal
+claude logs <id>          # show recent output
+claude stop <id>          # stop a session
+claude respawn --all      # restart all sessions after machine reboot
+```
+
+**Organizing:**
+
+| Key | Action |
+|---|---|
+| `Ctrl+S` | Toggle grouping by directory vs. state |
+| `Ctrl+T` | Pin session to top |
+| `Ctrl+R` | Rename session |
+| `Shift+↑` / `Shift+↓` | Reorder sessions |
+| `Ctrl+X` | Stop; press again within 2s to delete |
+
+**Filtering** (type in dispatch input): `a:<name>` by agent name · `s:<state>` by state (e.g. `s:blocked`) · `#<number>` or PR URL by PR.
+
+**Worktree isolation:** Sessions dispatched from agent view that edit files get an isolated git worktree at `.claude/worktrees/`. Prevents conflicts when multiple agents work on the same project. Deleting a session deletes its worktree — merge/push first.
+
+```bash
+git worktree list              # check for leftover worktrees
+git worktree remove <path>     # clean up
+```
+
+**Limitations:** Each parallel session draws from the same rate-limit quota. Sessions stop on machine sleep/shutdown (`claude respawn --all` to restart). Sessions open in other terminals won't appear until backgrounded with `/bg`.
 
 ---
 

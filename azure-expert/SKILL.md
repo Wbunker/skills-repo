@@ -93,6 +93,8 @@ When a query touches multiple namespaces and context is limited, prioritize load
 
 **Real-Time Streaming**: Event Hubs → Stream Analytics or Databricks → Cosmos DB/Synapse/ADLS Gen2
 
+**Cross-Cloud DB Sync**: Azure DB (SQL/MySQL/PostgreSQL/Cosmos) → Azure Function (Timer or CDC trigger) → external Postgres/Supabase (Supavisor pooler) — see [database/azure-function-to-supabase.md](references/database/azure-function-to-supabase.md)
+
 ## Bicep Conventions
 
 Prefer Bicep for IaC examples unless the user specifies ARM JSON or Terraform:
