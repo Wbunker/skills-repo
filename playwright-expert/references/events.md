@@ -69,8 +69,9 @@ Common `page` events (contexts emit many equivalents, e.g. `context.on('page')`)
 | `request` / `response` / `requestfinished` | Network lifecycle | [network.md](network.md) |
 | `requestfailed` | A request fails | [network.md](network.md) |
 | `websocket` | A WebSocket is created | [network.md](network.md) |
-| `worker` | A dedicated web worker starts | — |
+| `worker` | A dedicated web worker starts — `worker.url()`, `worker.evaluate()`, `worker.on('console'/'close')`; list via `page.workers()` | — |
 | `pageerror` | An uncaught exception in the page | [debugging.md](debugging.md) |
+| `weberror` (context) | Context-level uncaught exception — `webError.error()` / `.page()` / `.location()` | [debugging.md](debugging.md) |
 | `crash` | The page crashes (OOM, etc.) | — |
 | `close` | The page closes | — |
 | `framenavigated` / `frameattached` / `framedetached` | Frame lifecycle | [actions.md](actions.md#frames--iframes) |

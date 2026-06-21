@@ -45,7 +45,14 @@ dependencies of a given test are initialized, keeping runs fast. Fixtures are al
 | `context` | `BrowserContext` | Isolated context (cookies/storage) per test |
 | `browser` | `Browser` | Shared browser instance |
 | `browserName` | `string` | `'chromium'` \| `'firefox'` \| `'webkit'` |
+| `browserVersion` | `string` | The running browser's version |
 | `request` | `APIRequestContext` | Isolated context for API calls |
+| `playwright` | module | The Playwright module — e.g. `playwright.request.newContext()`, `playwright.devices`, `playwright.chromium`; handy in `beforeAll` for standalone API contexts ([network.md](network.md)) |
+| `contextOptions` | object | The options used to create the test's `context` (override to tweak) |
+
+Every `use` option is itself an "option fixture" you can override per file/describe with `test.use({…})`
+or read inside a custom fixture (`baseURL`, `viewport`, `storageState`, `headless`, etc. — see
+[test-config.md](test-config.md#the-use-block)).
 
 ## Custom fixtures
 

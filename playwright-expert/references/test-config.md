@@ -70,6 +70,8 @@ export default defineConfig({
 | `name` | Run label, surfaced in reports/merged reports. |
 | `quiet` | Suppress stdout/stderr from tests. |
 | `snapshotDir` | Base dir for snapshots (with `snapshotPathTemplate`). |
+| `tsconfig` | Path to a single `tsconfig` applied to all imported test files. |
+| `captureGitInfo` | `{ commit, diff }` — embed git commit/diff metadata into the report. |
 | `reporter` | See [Reporters](#reporters). |
 | `timeout` | Per-test timeout, ms. Default `30_000`. |
 | `globalTimeout` | Whole-run timeout, ms. Default none. |
@@ -120,6 +122,7 @@ option set, grouped as the docs group them:
 | `locale`, `timezoneId` | Browser locale / timezone. |
 | `geolocation`, `permissions` | Coordinates + granted permissions. |
 | `userAgent`, `deviceScaleFactor`, `isMobile`, `hasTouch`, `screen` | Device traits. |
+| `forcedColors`, `reducedMotion`, `contrast` | Media-feature emulation (`active`/`reduce`/`more`, …). |
 | `javaScriptEnabled` | Disable JS for a test. |
 
 **Network** (deep dive: [network.md](network.md))
@@ -682,9 +685,21 @@ optional; implement only what you need:
 | `onStepBegin(test, result, step)` / `onStepEnd(...)` | Around each `test.step` (and built-in steps). |
 | `onStdOut(chunk, test?, result?)` / `onStdErr(...)` | On test/process stdout/stderr. |
 | `onTestEnd(test, result)` | After each test attempt (has status, errors, attachments). |
-| `onError(error)` | On a global (non-test) error. |
-| `onEnd(result)` | Once, after all tests — `result.status` is the run outcome. |
+| `onError(error, workerInfo?)` | On a global (non-test) error. |
+| `onEnd(result)` | Once, after all tests — `result.status` is the run outcome; may return `{ status }` to override exit. |
+| `onExit()` | Just before the runner process exits (final async flush). |
 | `printsToStdio()` | Return `false` if the reporter writes only to a file (avoids stdout clashes). |
+
+The objects passed to these hooks (from `@playwright/test/reporter`):
+- **`Suite`** — the test tree: `type` (`root`/`project`/`file`/`describe`), `title`, `suites`,
+  `tests`, `allTests()`, `entries()`, `project()`.
+- **`TestCase`** — `title`/`titlePath()`, `location`, `tags`, `annotations`, `expectedStatus`,
+  `results`, `id`, `ok()`, `outcome()` (`expected`/`unexpected`/`flaky`/`skipped`).
+- **`TestResult`** — one attempt: `status`, `duration`, `retry`, `errors`, `attachments`, `stdout`,
+  `stderr`, `steps`, `workerIndex`.
+- **`TestStep`** — `title`, `category` (`expect`/`fixture`/`hook`/`pw:api`/`test.step`), `duration`,
+  `error`, nested `steps`, `attachments`.
+- **`TestError`** — `message`, `stack`, `value`, `location`, `snippet` (highlighted source), `cause`.
 
 ```typescript
 import type {

@@ -24,6 +24,7 @@ The authoritative deep dive on Playwright locators: how they work, the recommend
 - [Working with lists](#working-with-lists)
 - [Strictness](#strictness)
 - [Shadow DOM](#shadow-dom)
+- [Reading values & state](#reading-values--state)
 - [Custom selector engines](#custom-selector-engines)
 - [Locator tooling: pickLocator and normalize](#locator-tooling)
 
@@ -398,6 +399,21 @@ All built-in locators pierce **open** shadow roots by default; **XPath does not*
 await page.getByText('Details').click();
 await page.locator('x-details', { hasText: 'Details' }).click();
 await expect(page.locator('x-details')).toContainText('Details');
+```
+
+## Reading values & state
+
+Locators have getters for pulling values out of an element. **Prefer web-first
+[assertions](assertions.md)** (`toHaveText`, `toBeVisible`, …) which auto-retry — these one-shot
+getters do **not** retry, so use them only for branching logic, not for waiting:
+
+```typescript
+await loc.textContent();  await loc.innerText();  await loc.innerHTML();
+await loc.getAttribute('href');  await loc.inputValue();
+await loc.allInnerTexts();  await loc.allTextContents();   // arrays over all matches
+const ok = await loc.isVisible();   // also isHidden/isEnabled/isDisabled/isEditable/isChecked
+await loc.waitFor({ state: 'visible' });   // explicit wait: 'attached'|'detached'|'visible'|'hidden'
+await loc.highlight();   // debug-only: flash the element in a headed browser
 ```
 
 ## Custom selector engines

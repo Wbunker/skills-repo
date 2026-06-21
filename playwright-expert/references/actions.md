@@ -17,6 +17,7 @@ Comprehensive reference for performing actions in Playwright: input, mouse/keybo
 - [Dialogs](#dialogs)
 - [Downloads](#downloads)
 - [Navigation & auto-waiting](#navigation--auto-waiting)
+- [Auto-dismissing overlays (addLocatorHandler)](#auto-dismissing-overlays-addlocatorhandler)
 - [Frames & iframes](#frames--iframes)
 - [Actionability checks](#actionability-checks)
 - [Clock / time mocking](#clock--time-mocking)
@@ -192,6 +193,8 @@ const fileChooser = await fileChooserPromise;
 await fileChooser.setFiles(path.join(__dirname, 'myfile.pdf'));
 ```
 
+`FileChooser` also exposes `isMultiple()` (does the input accept multiple files?), `element()`, and `page()`.
+
 ## Drag and drop
 
 `dragTo()` drags one locator onto another (HTML5/mouse drag). `locator.drop()` (v1.60+) simulates an **external** drag — OS files or clipboard-like data — onto a drop zone via synthetic `dragenter`/`dragover`/`drop` with a `DataTransfer`.
@@ -324,14 +327,36 @@ cases, but the robust fix is app-side — keep interactive controls **disabled u
 `Enabled` actionability check naturally gates the action. For new tabs/popups opened by navigation,
 see [events.md](events.md#new-pages-tabs--popups).
 
-## Frames & iframes
+## Auto-dismissing overlays (addLocatorHandler)
 
-Use `frameLocator()` for chained, auto-waiting access into an `<iframe>`; use the `Frame` object (`page.frame()` / `locator.contentFrame()`) when you need frame metadata or `evaluate`.
+`page.addLocatorHandler(locator, handler)` (v1.42+) registers a callback that fires **automatically
+whenever the locator becomes visible** mid-action — the clean way to dismiss intermittent cookie
+banners, survey modals, or "session expiring" dialogs that would otherwise break unrelated steps.
 
 ```typescript
-// frameLocator — preferred, chainable, auto-waiting
-const username = page.frameLocator('.frame-class').getByLabel('User Name');
+await page.addLocatorHandler(
+  page.getByRole('button', { name: 'Accept all cookies' }),
+  async () => { await page.getByRole('button', { name: 'Accept all cookies' }).click(); },
+  { times: 1, noWaitAfter: true },   // options: cap invocations / don't wait for actionability after
+);
+// ...the rest of the test ignores the banner; Playwright runs the handler when it appears
+await page.removeLocatorHandler(locator);   // unregister when done
+```
+
+Prefer this over sprinkling defensive `if (visible) dismiss()` checks throughout a suite.
+
+## Frames & iframes
+
+Use a frame locator for chained, auto-waiting access into an `<iframe>`; use the `Frame` object (`page.frame()` / `locator.contentFrame()`) when you need frame metadata, navigation, or `evaluate`.
+
+```typescript
+// contentFrame() on a locator — the preferred way (v1.43+)
+const username = page.locator('#my-frame').contentFrame().getByLabel('User Name');
 await username.fill('John');
+
+// page.frameLocator(selector) still works; on the resulting FrameLocator,
+// .first()/.last()/.nth() are deprecated — use page.locator(sel).first().contentFrame() instead.
+// frameLocator.owner() converts back to a Locator on the <iframe> element.
 ```
 
 ```typescript

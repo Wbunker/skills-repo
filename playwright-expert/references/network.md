@@ -28,6 +28,13 @@ page.on('response', response => console.log('<<', response.status(), response.ur
 await page.goto('https://example.com');
 ```
 
+`Request` accessors: `url()`, `method()`, `headers()` / `allHeaders()` / `headersArray()`,
+`postData()` / `postDataJSON()` / `postDataBuffer()`, `resourceType()`, `failure()`, `frame()`,
+`isNavigationRequest()`, `redirectedFrom()` / `redirectedTo()`, `response()`, `serviceWorker()`,
+`sizes()`, `timing()`. `Response` accessors: `ok()`, `status()`, `statusText()`, `url()`, `headers()` /
+`allHeaders()` / `headersArray()` / `headerValue(name)`, `body()` / `text()` / `json()`, `finished()`,
+`request()`, `frame()`, `fromServiceWorker()`, `securityDetails()`, `serverAddr()`, `httpVersion()`.
+
 WebSocket frames are observe-only via events (to *mock*, see [WebSocket mocking](#websocket-mocking)):
 
 ```typescript
@@ -35,8 +42,10 @@ page.on('websocket', ws => {
   console.log(`opened: ${ws.url()}`);
   ws.on('framesent', event => console.log(event.payload));
   ws.on('framereceived', event => console.log(event.payload));
+  ws.on('socketerror', err => console.log(err));
   ws.on('close', () => console.log('closed'));
 });
+// also: ws.isClosed(), ws.waitForEvent('framereceived')
 ```
 
 ## Waiting for requests/responses
@@ -106,6 +115,15 @@ await page.route('**/*', async route => {                            // runs fir
 ```
 
 `route.continue()` and `route.fallback()` accept the same override options: `url`, `method`, `headers`, `postData`.
+
+`route.fulfill()` options: `status`, `headers`, `body`, `json`, `contentType`, `response` (base on an
+`APIResponse`), and `path` (serve a file from disk). `route.abort([errorCode])` defaults to `'failed'`;
+other codes include `'aborted'`, `'timedout'`, `'connectionrefused'`, `'blockedbyclient'`,
+`'internetdisconnected'`, `'namenotresolved'`.
+
+```typescript
+await page.route('**/logo.png', route => route.fulfill({ path: './fixtures/logo.png' }));
+```
 
 ## Modifying requests
 
@@ -225,7 +243,14 @@ test('create + read issue', async ({ request }) => {
 });
 ```
 
-Request options: `data` (JSON/string/Buffer), `params` (query), `headers`, `multipart` (file uploads), `form`, `timeout`, `failOnStatusCode`.
+Request options: `data` (JSON/string/Buffer), `params` (query), `headers`, `multipart` (file uploads),
+`form`, `timeout`, `failOnStatusCode`, `ignoreHTTPSErrors`, `maxRedirects` (default 20),
+`maxRetries` (retry on `ECONNRESET`, default 0).
+
+`APIResponse` accessors: `ok()`, `status()`, `statusText()`, `url()`, `headers()` / `headersArray()`
+(preserves duplicates), `body()` (Buffer), `text()`, `json()`, `dispose()` (free the body), and
+`securityDetails()` / `serverAddr()` (v1.61+). Context-level options on `request.newContext()` add
+`baseURL`, `httpCredentials`, `proxy`, `userAgent`, `storageState`, and `clientCertificates`.
 
 **Manual context** (e.g. mix API setup with a browser test) — dispose when done:
 

@@ -13,8 +13,10 @@ Live debugging tools for stepping through Playwright tests and exploring locator
 - [Codegen for authenticated / emulated sessions](#codegen-for-authenticated--emulated-sessions)
 - [Locator tools](#locator-tools) — `page.pickLocator()`, `locator.normalize()`
 - [CLI debugger for agents](#cli-debugger-for-agents) — `--debug=cli`
+- [Programmatic debugger (context.debugger)](#programmatic-debugger-contextdebugger)
 - [Dashboard for bound browsers](#dashboard-for-bound-browsers)
 - [Trace CLI](#trace-cli) — explore traces from the command line
+- [Code coverage](#code-coverage)
 - [Post-failure analysis](#post-failure-analysis)
 
 ## UI Mode
@@ -193,6 +195,29 @@ const reqs = await page.requests();          // recent network requests (see net
 These are handy assertions/log dumps when a test misbehaves. The HTML reporter's **Speedboard** tab
 (v1.57+) lists tests by duration to find slow spots; the merged-report **Timeline** (v1.58+) charts
 execution across environments.
+
+Each `ConsoleMessage` (from `page.on('console')` / `page.consoleMessages()`) exposes `text()`,
+`type()`, `args()` (JSHandles), `location()` (`{ url, line, column }`), `page()`, `timestamp()`
+(v1.59+), and `worker()` (v1.57+, the web/service worker that logged it).
+
+## Code coverage
+
+`page.coverage` (Chromium-only) collects V8 JS and CSS coverage — feed it to `v8-to-istanbul` for
+Istanbul reports:
+
+```javascript
+await page.coverage.startJSCoverage({ resetOnNavigation: true, reportAnonymousScripts: false });
+await page.goto('https://example.com');
+const coverage = await page.coverage.stopJSCoverage();   // [{ url, source, functions }, ...]
+// page.coverage.startCSSCoverage() / stopCSSCoverage() → [{ url, text, ranges }]
+```
+
+## Programmatic debugger (context.debugger)
+
+`browserContext.debugger` (v1.59+) pauses/steps script execution programmatically — the engine behind
+`--debug=cli`. Methods: `requestPause()`, `next()` (step), `runTo(location)`, `resume()`,
+`pausedDetails()`, and `on('pausedstatechanged')`. Most users want the [CLI debugger](#cli-debugger-for-agents)
+or [Inspector](#playwright-inspector) instead — this is for building custom debug tooling.
 
 ## Post-Failure Analysis
 

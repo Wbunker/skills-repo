@@ -213,6 +213,10 @@ Modes:
 | `'retain-on-first-failure'` | Record the first run; keep only if it fails (v1.61+). |
 | `'retain-on-failure-and-retries'` | Keep on failure and on any retry (v1.61+). |
 
+Access the recording programmatically via `page.video()` — `path()` (file location), `saveAs(path)`
+(copy elsewhere; waits for recording to finish), `delete()`. In library mode, enable with the
+`recordVideo: { dir, size }` context option; the file is finalized when the context closes.
+
 Set size and (optionally) on-frame action/test annotations:
 
 ```typescript

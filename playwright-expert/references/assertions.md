@@ -47,10 +47,11 @@ These poll the page until the condition holds or the timeout is reached. Apply t
 | `toHaveRole()` | Locator | Element has the given ARIA role |
 | `toHaveAccessibleName()` | Locator | Element has matching accessible name |
 | `toHaveAccessibleDescription()` | Locator | Element has matching accessible description |
+| `toHaveAccessibleErrorMessage()` | Locator | Element has matching ARIA error message (v1.50+) |
 | `toMatchAriaSnapshot()` | Locator/Page | Subtree matches an ARIA snapshot ([below](#aria-snapshot-assertions)) |
 | `toHaveScreenshot()` | Locator/Page | Matches a stored screenshot — see [visual-comparisons.md](visual-comparisons.md) |
 | `toHaveTitle()` | Page | Page has title (string/regex) |
-| `toHaveURL()` | Page | Page has URL (string/regex/predicate) |
+| `toHaveURL()` | Page | Page has URL (string/regex/predicate; option `{ ignoreCase }`) |
 | `toBeOK()` | APIResponse | Response status is 2xx ([network.md](network.md)) |
 
 ```typescript
@@ -67,6 +68,13 @@ Insert `.not` before any matcher; it inverts and still auto-retries (waits for t
 ```typescript
 expect(value).not.toEqual(0);
 await expect(locator).not.toContainText('some text');
+```
+
+For plain promises (not locators), `.resolves` / `.rejects` unwrap before matching:
+
+```typescript
+await expect(fetchUser()).resolves.toMatchObject({ id: 1 });
+await expect(brokenCall()).rejects.toThrow('boom');
 ```
 
 ## Soft assertions

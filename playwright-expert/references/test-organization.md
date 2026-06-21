@@ -13,6 +13,7 @@ Structuring suites with `test.describe`, hooks, steps, annotations, tags, parame
 - [Parameterized tests](#parameterized-tests)
 - [test.use for scoped options](#testuse-for-scoped-options)
 - [test.abort](#testabort)
+- [TestInfo (the second test argument)](#testinfo-the-second-test-argument)
 - [Retries and flaky detection](#retries-and-flaky-detection)
 - [test.describe.configure (mode / retries / timeout)](#testdescribeconfigure-mode--retries--timeout)
 
@@ -64,6 +65,16 @@ Boxed step — failures point to the `test.step` call site, not the internal lin
 
 ```typescript
 await test.step('login', async () => { /* ... */ }, { box: true });
+```
+
+The callback receives a `TestStepInfo` — `step.skip(condition?, description?)` to skip a step at
+runtime (v1.51+), and `step.attach(name, options)` to attach data from within the step:
+
+```typescript
+await test.step('check behavior', async step => {
+  step.skip(browserName === 'webkit', 'Unavailable in WebKit');
+  // ...
+});
 ```
 
 ## Annotations (skip / fixme / fail / slow / only)
@@ -318,6 +329,29 @@ test('does not publish', async ({ page }) => {
   });
 });
 ```
+
+## TestInfo (the second test argument)
+
+Every test/hook/fixture can take a second `testInfo` arg exposing run metadata and utilities:
+
+```typescript
+test('example', async ({ page }, testInfo) => {
+  testInfo.retry;            // current retry attempt (0 = first run)
+  testInfo.project.name;     // active project; testInfo.config for the full config
+  testInfo.status;           // outcome (in afterEach); testInfo.expectedStatus
+  testInfo.tags;             // tags on this test (v1.43+); testInfo.testId
+  testInfo.setTimeout(60_000);
+  testInfo.skip(cond, 'why'); testInfo.fail(); testInfo.fixme(); testInfo.slow();
+
+  // attach a file/buffer to the report (shown in HTML report / trace Attachments)
+  await testInfo.attach('screenshot', { body: await page.screenshot(), contentType: 'image/png' });
+  const tmp = testInfo.outputPath('data.json');   // safe per-test temp path
+});
+```
+
+`testInfo.attach` is the canonical way to surface artifacts (see [accessibility.md](accessibility.md));
+`outputPath`/`outputDir` give scratch space cleaned between runs. Worker-scoped fixtures get the
+slimmer `WorkerInfo` (`config`, `project`, `workerIndex`, `parallelIndex`).
 
 ## Retries and flaky detection
 

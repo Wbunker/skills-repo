@@ -11,6 +11,8 @@ browser, and executed there — it has no access to your Node/test scope, so pas
 - [Handles vs locators](#handles-vs-locators)
 - [locator.evaluate / evaluateAll](#locatorevaluate--evaluateall)
 - [addInitScript](#addinitscript)
+- [waitForFunction](#waitforfunction)
+- [addScriptTag / addStyleTag](#addscripttag--addstyletag)
 - [exposeFunction / exposeBinding](#exposefunction--exposebinding)
 
 ## page.evaluate
@@ -72,8 +74,11 @@ const docHandle = await handle.getProperty('document');
 
 const arrHandle = await page.evaluateHandle(() => [1, 2, 3]);
 const arr = await arrHandle.jsonValue();           // serialize back to Node: [1,2,3]
+const asEl = arrHandle.asElement();                 // ElementHandle if it's a DOM node, else null
 await arrHandle.dispose();                          // release (handles block GC until disposed)
 ```
+
+`JSHandle` also has `evaluate(fn)` / `evaluateHandle(fn)` (run a function with the handle as arg).
 
 **ElementHandle is discouraged** — get one only when you must (`page.$(selector)` /
 `page.waitForSelector(selector)`), and prefer locators otherwise:
@@ -82,6 +87,10 @@ await arrHandle.dispose();                          // release (handles block GC
 const el = await page.waitForSelector('#node');     // ElementHandle (discouraged)
 await el.click();
 ```
+
+Beyond actions, an ElementHandle offers `boundingBox()`, `$()` / `$$()`, `$eval()` / `$$eval()`,
+`contentFrame()` / `ownerFrame()`, `waitForElementState()`, and `selectText()` — all with Locator
+equivalents you should prefer.
 
 ## Handles vs locators
 
@@ -119,6 +128,28 @@ seeding globals or stubbing browser APIs (see [network.md](network.md#mocking-br
 ```typescript
 await page.addInitScript(value => { Math.random = () => value; }, 42);
 await page.addInitScript({ path: './preload.js' });   // from a file
+```
+
+## waitForFunction
+
+Poll a JS predicate in the page until it returns truthy — for conditions no web-first assertion
+covers (prefer [assertions](assertions.md) when one does):
+
+```typescript
+await page.waitForFunction(() => window.__appReady === true);
+await page.waitForFunction(sel => document.querySelectorAll(sel).length > 3, '.row');
+const handle = await page.waitForFunction(() => window.scrollY > 1000);  // returns a JSHandle
+```
+
+## addScriptTag / addStyleTag
+
+Inject a `<script>` or `<style>`/`<link>` into the page (content, `url`, or `path`) — e.g. to load a
+helper lib or override CSS during a test:
+
+```typescript
+await page.addScriptTag({ url: 'https://cdn.example.com/lib.js' });
+await page.addScriptTag({ content: 'window.__patched = true;' });
+await page.addStyleTag({ content: '* { animation: none !important; }' });
 ```
 
 ## exposeFunction / exposeBinding

@@ -174,12 +174,49 @@ const browser = await playwright.chromium.connectOverCDP('http://localhost:9222'
 **connect** — attach to a Playwright server started via `BrowserType.launchServer()`:
 
 ```javascript
+// server process
+const server = await chromium.launchServer({ port: 9876 });   // → BrowserServer
+const wsEndpoint = server.wsEndpoint();
+// ... later: await server.close()  (or server.kill())
+
+// client process
 const browser = await chromium.connect(wsEndpoint);
 ```
 
-`browserType.connect(wsEndpoint, options) → Promise<Browser>`. Client and server major+minor versions must match.
+`browserType.connect(wsEndpoint, options) → Promise<Browser>` — options include `headers`, `slowMo`,
+`timeout`, `exposeNetwork` (let the remote browser reach the client's network). Client and server
+major+minor versions must match. **BrowserServer** (`launchServer`'s return) exposes `wsEndpoint()`,
+`process()`, `close()`, `kill()`, and `on('close')` — use it to run a shared/remote browser farm that
+many `connect()` clients dial into.
+
+### Raw CDP access (Chromium)
+
+Drop to the Chrome DevTools Protocol when Playwright lacks an API for something:
+
+```javascript
+const session = await context.newCDPSession(page);   // page/frame-scoped CDP
+await session.send('Animation.enable');
+const rate = await session.send('Animation.getPlaybackRate');
+session.on('Animation.animationCreated', () => {});  // or on('event', ({method, params}) => …)
+await session.detach();                               // stop the session
+const browserSession = await browser.newBrowserCDPSession();  // browser-scoped CDP
+```
+
+Other `Browser` members: `version()`, `isConnected()`, `browserType()`, `contexts()`, and
+`on('disconnected')`.
 
 ## Electron & Android (experimental)
+
+Catch timeouts specifically with `playwright.errors.TimeoutError` (thrown by `waitFor`, actions with a
+`timeout`, `launch`, etc.):
+
+```javascript
+try {
+  await page.locator('text=Foo').click({ timeout: 100 });
+} catch (error) {
+  if (error instanceof playwright.errors.TimeoutError) console.log('Timeout!');
+}
+```
 
 The `playwright` module also exposes experimental entry points (and `playwright.errors.TimeoutError`
 for catching timeouts):
@@ -188,15 +225,30 @@ for catching timeouts):
 const { _electron: electron } = require('playwright');
 const app = await electron.launch({ args: ['main.js'] });  // launch an Electron app
 const window = await app.firstWindow();                     // drive its BrowserWindow like a Page
+// reach into the Electron MAIN process (the key Electron capability):
+const appPath = await app.evaluate(async ({ app }) => app.getAppPath());
 await window.click('text=Click me');
 await app.close();
 ```
 
+`ElectronApplication` also has `windows()`, `browserWindow(page)`, `context()` (for context-wide
+routing), `evaluateHandle()`, and `on('window')`/`on('close')`.
+
 ```javascript
 const { _android: android } = require('playwright');
 const [device] = await android.devices();    // attach to a connected Android device (adb)
-await device.shell('am start -n com.android.chrome/...');
+const context = await device.launchBrowser();// drive Chrome for Android as a normal context/page
+const page = await context.newPage();
+await page.goto('https://webkit.org/');
+await device.shell('am start -n com.android.chrome/...');  // raw shell; also installApk/push, model/serial/info
+await context.close();
+await device.close();
 ```
+
+`AndroidDevice` also drives **native** UI: `device.input` (`tap`/`swipe`/`drag`/`press`/`type`),
+widget gestures (`tap`/`fill`/`scroll`/`fling`/`longTap`/`pinchOpen`/`pinchClose`/`swipe`), `wait()`,
+`screenshot()`, and `device.open()` → an `AndroidSocket`. For app WebViews, `device.webView()` returns
+an `AndroidWebView` whose `.page()` gives a normal Playwright `Page`.
 
 Both are experimental (underscore-prefixed) and Chromium-only; APIs may change. For desktop web views
 on Windows see [WebView2 apps](#webview2-apps).
