@@ -285,6 +285,42 @@ test('runs second', async () => {
 });
 ```
 
+### Isolating a chunk of data-mutating tests (shared-state contention)
+
+When a group of tests mutates **shared server state** they cannot safely run in
+parallel — even with per-test data isolation, some resources are inherently
+shared. The classic example: an **ordered list** (sidebar order, ranks, board
+columns). Each row owns a `position`, so "move X up" is a read-modify-write
+across the *whole sibling list*; two such tests overlapping clobber each other's
+positions on the backend (a real race, not a test bug). Symptom: a reorder
+assertion passes alone and in isolation but flakes only in the full parallel
+suite, and only for the test that asserts global order.
+
+Fixes, in order of preference:
+- **Data-partition the chunk** — give the contending tests their own account /
+  team / workspace so the "shared" list isn't shared. Scales best; keeps them
+  parallel. Key per-slot resources on `parallelIndex` (below).
+- **Serialize the chunk** — run just those tests in one worker, in order. Under
+  `fullyParallel: true`, both `mode: 'default'` and `mode: 'serial'` on a
+  `describe` collapse that block to a single worker. **Prefer `'default'`**: it
+  runs in order but keeps tests *independent*, so one failure doesn't skip the
+  rest (`'serial'` cascades skips — only for genuinely dependent flows that
+  share a page/state). Scope it as tightly as possible — a whole serialized
+  feature is the long pole of the suite.
+
+**playwright-bdd** has no sub-feature grouping: the `@mode:default|serial|parallel`
+special tag applies at the **Feature** level (or to a single scenario's own
+describe, which can't group siblings). So a serial *chunk* = its own `.feature`
+file tagged `@mode:default`; keep the parallel-safe scenarios in a separate
+feature. Verify it actually serialized by watching wall-clock jump (one worker)
+and the emitted `test.describe.configure({mode})` in `.features-gen/`.
+
+Always *prove persistence* for a mutation, not just the optimistic UI: after the
+write, **reload** and assert the post-reload DOM — it can only come from the
+backend GET, so it confirms the change committed (and incidentally removes
+optimistic-state flakiness). Await the mutation's network response before
+reloading so the reload reads settled state.
+
 Worker/parallel indices (via `testInfo` or env):
 
 ```typescript

@@ -46,6 +46,7 @@ Fixtures are the core abstraction for setup/teardown; see [fixtures.md](referenc
 | Test structure, the three pillars, isolation, Page Object Model | [writing-tests.md](references/writing-tests.md) |
 | Locators — all engines, filtering, chaining, lists, strictness | [locators.md](references/locators.md) |
 | Actions — input, mouse/keyboard, files, dialogs, downloads, frames, clock | [actions.md](references/actions.md) |
+| DnD libraries — testing react-beautiful-dnd / @hello-pangea/dnd / dnd-kit (keyboard sensor, stepped-mouse fallback, tree limits) | [dnd-libraries.md](references/dnd-libraries.md) |
 | Assertions — web-first matchers, soft/poll/toPass, custom, aria snapshots | [assertions.md](references/assertions.md) |
 | Events — `on`/`once`/`off`/`waitForEvent`, catalog, pages/tabs/popups | [events.md](references/events.md) |
 | Evaluating JS — `page.evaluate`, handles, `exposeFunction`/`Binding` | [evaluating.md](references/evaluating.md) |

@@ -226,6 +226,11 @@ await page.locator('#dropzone').drop({
 
 `dragTo` requires the source to pass Visible + Stable + Receives Events.
 
+> **JS DnD libraries (react-beautiful-dnd / @hello-pangea/dnd, dnd-kit):** `dragTo()`
+> usually fails — they use a pointer/keyboard state machine with a drag threshold,
+> not HTML5 drag. Prefer the **keyboard sensor** (Space → arrows → Space); fall back
+> to a stepped mouse sequence. See [dnd-libraries.md](dnd-libraries.md).
+
 ## Dialogs
 
 JS dialogs (`alert`/`confirm`/`prompt`/`beforeunload`) auto-**dismiss** unless a listener handles them. Register the handler **before** the action. A handler that never calls `accept()`/`dismiss()` hangs the test.
