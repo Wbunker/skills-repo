@@ -612,3 +612,14 @@ artifacts are ordinary spec files.
   each other.
 - **This is not CucumberJS** — no `cucumber.js` profile, no `setWorldConstructor`; the runner is
   Playwright, so timeouts, retries, parallelism, and reporters come from `playwright.config`.
+- **Run the suite against a production build, not a dev server (default to prod).** Configure
+  `playwright.config`'s `webServer` to build + serve (`next build && next start`, or your framework's
+  equivalent) — *not* the dev server. A dev server compiles each route on first request (seconds
+  each), so under parallel e2e load the first hit to a heavy route flakes with
+  `page.goto: Timeout … exceeded`. A prod build serves precompiled routes instantly and
+  deterministically. Keep a dev-server option behind an opt-in env var (e.g. `E2E_DEV_SERVER=1`) for
+  fast single-test local iteration only — never as the default or in CI. Corollary: a reused
+  long-running prod server (`reuseExistingServer: true`) serves a *stale bundle* — app-code edits
+  (components/lib) won't appear until you rebuild/restart it, though test-code edits (steps/features)
+  are picked up live by `bddgen` + the runner. After changing app code, restart the server before
+  trusting an e2e result.
