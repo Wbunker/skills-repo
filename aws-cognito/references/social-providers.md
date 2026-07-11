@@ -23,6 +23,15 @@ All social providers require:
 - Prefix domain: `https://<prefix>.auth.<region>.amazoncognito.com/oauth2/idpresponse`
 - Custom domain: `https://auth.example.com/oauth2/idpresponse`
 
+**Scope separators differ by provider:** Facebook uses **commas** (`public_profile,email`); Google, Login with Amazon, and Apple use **spaces** (`profile email openid`). Getting this wrong silently breaks attribute retrieval.
+
+**Provider gotchas:**
+- **Google:** the OAuth consent screen's *Authorized domains* must include `amazoncognito.com` (and your custom-domain root).
+- **Facebook:** pick the **latest API version** — each version has a deprecation date and scopes/attributes vary across versions; test after upgrading.
+- **Apple:** scopes (e.g. `name`) may **not be returned** if the user left Apple's page mid-flow, the Services ID is reused across pools, you added scopes after the user's first sign-in, or the user re-signs-in without removing your app from their Apple ID. Store `name` on first sign-in. More Apple quirks in [Apple Setup](#apple-setup).
+- Enable the IdP on the app client (**Login pages → Managed login pages configuration**) — creating it on the pool isn't enough.
+- Silent redirect straight to a provider: `/oauth2/authorize?identity_provider=Facebook|Google|LoginWithAmazon|SignInWithApple&response_type=code&client_id=…&redirect_uri=…`
+
 ---
 
 ## Google Setup
@@ -130,7 +139,11 @@ aws cognito-idp create-identity-provider \
   --attribute-mapping email=email,name=name
 ```
 
-**Important:** Apple only returns name on first sign-in. Store it immediately.
+**Apple quirks (all bite in practice):**
+- **`client_id` is the *Services ID*, not the App ID.** An `invalid redirect_url` error on Apple's page *when your redirect URL is correct* almost always means you configured the Application Identifier instead of the Service Identifier. Cognito builds the `client_secret` JWT for you from `team_id` + `key_id` + `.p8` `private_key`.
+- **Name is unverified and first-sign-in-only** — Apple sends `name` once, in the *authorization response* (not the ID token), and it isn't trusted. Only **`email`** comes back in a trusted form (the ID token). Persist `name` on first sign-in and treat it as non-authoritative.
+- **Private-relay email:** if the user hides their address, `email` is `<random>@privaterelay.appleid.com`. Mail to it forwards **only** from a sender you've registered with Apple's private email relay — unregistered senders bounce. Handle relay addresses in downstream email logic.
+- **Scopes are honored only on the *first* authorization.** To capture new scopes from an existing user, they must go to **appleid.apple.com → Apps & Websites Using Apple ID → your app → Stop using Apple ID**, then re-authenticate.
 
 ---
 
